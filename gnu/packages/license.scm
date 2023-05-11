@@ -179,13 +179,14 @@ belonging to various licenses.")
         (base32 "0ij2mpdnawjabnsy291157wzci9050dfclwib95phg7pnmd6xsw0"))))
     (build-system pyproject-build-system)
     (native-inputs
-     (list python-poetry-core python-pytest))
+     (list python-poetry-core python-pytest python-wheel))
     (inputs
      (list python-binaryornot
            python-boolean.py
            python-debian
            python-jinja2
-           python-license-expression))
+           python-license-expression
+           python-setuptools)) ; For pkg_resources.
     (home-page "https://reuse.software/")
     (synopsis "Provide and verify copyright and licensing information")
     (description

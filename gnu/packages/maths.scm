@@ -161,6 +161,7 @@
   #:use-module (gnu packages pkg-config)
   #:use-module (gnu packages pulseaudio)
   #:use-module (gnu packages python)
+  #:use-module (gnu packages python-build)
   #:use-module (gnu packages python-web)
   #:use-module (gnu packages python-xyz)
   #:use-module (gnu packages qt)
@@ -4823,7 +4824,8 @@ access to BLIS implementations via traditional BLAS routine calls.")
              (invoke "python" "setup.py" "build_ext" "--inplace"
                      "-j" (number->string (parallel-job-count))))))))
     (propagated-inputs (list python-numpy))
-    (native-inputs (list python-cython python-pytest))
+    (native-inputs (list python-cython python-pytest
+                         python-setuptools python-wheel))
     (home-page "https://github.com/explosion/cython-blis")
     (synopsis "Blis as a self-contained C-extension for Python")
     (description

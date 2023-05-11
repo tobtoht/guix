@@ -191,9 +191,12 @@ routines such as routines for numerical integration and optimization.")
              (invoke "python" "setup.py" "build_ext" "--inplace"))))))
     (propagated-inputs
      (list python-dask
-           python-numpy))
+           python-numpy
+           python-click))
     (native-inputs
      (list python-cython
+           python-setuptools
+           python-wheel
            ;; The following are all needed for the tests
            htslib
            python-h5py
@@ -340,7 +343,7 @@ logic, also known as grey logic.")
            python-scikit-learn
            python-scipy))
     (native-inputs
-     (list python-pytest))
+     (list python-pytest python-setuptools python-wheel))
     (home-page "https://scikit-optimize.github.io/")
     (synopsis "Sequential model-based optimization toolbox")
     (description "Scikit-Optimize, or @code{skopt}, is a simple and efficient
@@ -743,7 +746,7 @@ multiple deep learning frameworks.")
                 "1339fz5gxkizq02h6vn19546x9p4c3nd9ipzpcg39h7gwhg26yi6"))))
     (build-system pyproject-build-system)
     (native-inputs
-     (list python-setuptools-scm python-pytest))
+     (list python-setuptools python-setuptools-scm python-pytest python-wheel))
     (propagated-inputs
      (list python-numpy python-pandas))
     (home-page "https://github.com/pydata/xarray")
@@ -840,7 +843,8 @@ parentdir_prefix = pytensor-
                         "--ignore" "tests/tensor/"
                         "--ignore" "tests/sandbox/"
                         "--ignore" "tests/sparse/sandbox/")))))))
-    (native-inputs (list python-cython python-pytest python-versioneer))
+    (native-inputs (list python-cython python-pytest python-versioneer
+                         python-setuptools python-wheel))
     (propagated-inputs (list python-cons
                              python-etuples
                              python-filelock
@@ -1585,7 +1589,9 @@ aggregated sum and more.")
            python-mock
            python-pandas
            python-pytest python-pytest-cov
-           tzdata-for-tests))
+           tzdata-for-tests
+           python-setuptools
+           python-wheel))
     (home-page "https://github.com/has2k1/plotnine")
     (synopsis "Grammar of Graphics for Python")
     (description
@@ -2035,7 +2041,8 @@ NeuroML2 models.")
                 "0mrm4rd6x1sm6hkvhk20mkqp9q53sl3lbvq6hqzyymkw1iqq6bhy"))))
     (build-system pyproject-build-system)
     (propagated-inputs (list python-lxml python-six))
-    (native-inputs (list python-pytest python-numpy python-tables))
+    (native-inputs (list python-pytest python-numpy python-tables
+                         python-setuptools python-wheel))
     (home-page "https://libneuroml.readthedocs.org/en/latest/")
     (synopsis
      "Python library for working with NeuroML descriptions of neuronal models")

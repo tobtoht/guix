@@ -3220,7 +3220,8 @@ instances.")
     (native-inputs
      (list python-wrapper))
     (propagated-inputs
-     (list python-toml python-packaging python-ply))
+     (list python-toml python-packaging python-ply python-setuptools
+           python-wheel))
     (home-page "https://www.riverbankcomputing.com/software/sip/intro")
     (synopsis "Python binding creator for C and C++ libraries")
     (description

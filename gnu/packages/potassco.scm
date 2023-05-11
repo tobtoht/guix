@@ -341,7 +341,8 @@ Python code.")))
                     (("self\\.assertTrue\\(os_called\\)" all)
                      (string-append "# " all))))))))
    (propagated-inputs (list python-clingo))
-   (native-inputs (list python-typing-extensions))
+   (native-inputs (list python-typing-extensions
+                        python-setuptools python-wheel))
    (home-page "https://potassco.org")
    (synopsis "Object relational mapping to clingo")
    (description "@acronym{Clorm, Clingo ORM} provides an @acronym{ORM,
@@ -366,6 +367,7 @@ into Python programs easier.")
                 "0g3khxfdzc2hc7dkiyyqhb399h6h21m5wkp6wy8w71n0m32fiy53"))))
     (build-system pyproject-build-system)
     (propagated-inputs (list python-clingo))
+    (native-inputs (list python-setuptools python-wheel))
     (home-page "https://potassco.org/")
     (synopsis "Solve dynamic temporal logic programs")
     (description "This package provides a system to solve dynamic temporal
@@ -393,8 +395,10 @@ logic programs based on clingo.")
                              python-imageio
                              python-jinja2
                              python-jsonschema
-                             python-networkx))
-    (native-inputs (list dot2tex graphviz python-pylint python-pytest))
+                             python-networkx
+                             python-setuptools))
+    (native-inputs (list dot2tex graphviz python-pylint python-pytest
+                         python-wheel))
     (home-page "https://github.com/potassco/clingraph")
     (synopsis "Visualizer for graphs defined as logic programs")
     (description

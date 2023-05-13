@@ -143,6 +143,7 @@
   #:use-module (guix git-download)
   #:use-module (guix gexp)
   #:use-module ((guix licenses) #:prefix license:)
+  #:use-module (guix modules)
   #:use-module (guix packages)
   #:use-module (guix utils)
   #:use-module (srfi srfi-1)
@@ -1750,8 +1751,12 @@ domains, their live performance and resource utilization statistics.")
              (string-append "XMLTO="
                             (search-input-file %build-inputs
                                                "/bin/xmlto")))
-       #:modules ((ice-9 ftw)
-                  ,@%gnu-build-system-modules)
+      #:modules ((guix build gnu-build-system)
+                  (guix build utils)
+                  ((guix build python-build-system)
+                   #:select (ensure-no-mtimes-pre-1980)))
+      #:imported-modules ,(append %gnu-build-system-modules
+                                 %python-build-system-modules)
        #:phases
        (modify-phases %standard-phases
          (delete 'configure)            ; no configure script
@@ -1774,17 +1779,8 @@ domains, their live performance and resource utilization statistics.")
              (substitute* "criu/include/plugin.h"
                (("/var") (string-append (assoc-ref outputs "out"))))
              ))
-         ;; TODO: use
-         ;; (@@ (guix build python-build-system) ensure-no-mtimes-pre-1980)
-         ;; when it no longer throws due to trying to call UTIME on symlinks.
          (add-after 'unpack 'ensure-no-mtimes-pre-1980
-           (lambda _
-             (let ((early-1980 315619200))  ; 1980-01-02 UTC
-               (ftw "." (lambda (file stat flag)
-                          (unless (or (<= early-1980 (stat:mtime stat))
-                                      (eq? (stat:type stat) 'symlink))
-                            (utime file early-1980 early-1980))
-                          #t)))))
+                    ensure-no-mtimes-pre-1980)
          (add-before 'build 'fix-symlink
            (lambda* (#:key inputs #:allow-other-keys)
              ;; The file 'images/google/protobuf/descriptor.proto' points to

@@ -271,6 +271,7 @@ MODULES =					\
   guix/build/bournish.scm			\
   guix/build/qt-utils.scm			\
   guix/build/make-bootstrap.scm			\
+  guix/build/toml.scm			\
   guix/search-paths.scm				\
   guix/packages.scm				\
   guix/import/cabal.scm				\
@@ -572,6 +573,7 @@ SCM_TESTS =					\
   tests/system.scm				\
   tests/style.scm				\
   tests/texlive.scm				\
+  tests/toml.scm				\
   tests/transformations.scm			\
   tests/ui.scm					\
   tests/union.scm				\

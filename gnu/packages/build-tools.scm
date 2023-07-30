@@ -355,10 +355,7 @@ resembles Python.")
                 "1hpjw9qj6ff8ixjs0pz7qysc8v57jxgaf5n1p6bqm9bh3mc3wnrx"))))
     (build-system pyproject-build-system)
     (arguments
-     ;; The project is configured to use itself to build ('mesonpy') and fails;
-     ;; use another PEP 517 build system.
-     (list #:build-backend "setuptools.build_meta"
-           #:test-flags #~(list "tests"
+     (list #:test-flags #~(list "tests"
                                 ;; The test_pep518 tries to install
                                 ;; dependencies from the network using pip.
                                 "-k" "not test_pep518")))
@@ -370,10 +367,7 @@ resembles Python.")
            python-tomli
            python-wheel))
     (native-inputs
-     (list python-pypa-build
-           python-wheel
-
-           ;; For tests.
+     (list ;; For tests.
            git-minimal/pinned
            patchelf
            pkg-config

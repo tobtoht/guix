@@ -93,11 +93,6 @@
     (build-system pyproject-build-system)
     (arguments
      (list
-      ;; FIXME: The default 'mesonpy' build system doesn't seem to work with
-      ;; our pyproject-build-system, errors with: AttributeError: 'list'
-      ;; object has no attribute 'items' (see:
-      ;; https://issues.guix.gnu.org/62781).
-      #:build-backend "setuptools.build_meta"
       #:phases
       #~(modify-phases %standard-phases
           (replace 'check

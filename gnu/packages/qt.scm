@@ -634,6 +634,8 @@ developers using C++ or QML, a CSS & JavaScript like language.")
     (build-system cmake-build-system)
     (arguments
      (substitute-keyword-arguments (package-arguments qtbase-5)
+       ((#:disallowed-references _ #f)
+        (list python))
        ((#:configure-flags _ ''())
         `(let ((out (assoc-ref %outputs "out")))
            (list "-DQT_BUILD_TESTS=ON"
@@ -727,7 +729,8 @@ developers using C++ or QML, a CSS & JavaScript like language.")
             (add-after 'patch-source-shebangs 'do-not-capture-python
               (lambda _
                 (substitute* '("mkspecs/features/uikit/devices.py"
-                               "util/testrunner/qt-testrunner.py")
+                               "util/testrunner/qt-testrunner.py"
+                               "util/testrunner/sanitizer-testrunner.py")
                   (((which "python3"))
                    "/usr/bin/env python3"))))
             (replace 'configure

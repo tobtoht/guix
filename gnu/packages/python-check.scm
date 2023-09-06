@@ -12,7 +12,7 @@
 ;;; Copyright © 2021-2023 Sharlatan Hellseher <sharlatanus@gmail.com>
 ;;; Copyright © 2021 Brendan Tildesley <mail@brendan.scot>
 ;;; Copyright © 2021, 2022 Guillaume Le Vaillant <glv@posteo.net>
-;;; Copyright © 2021 Bonface Munyoki Kilyungi <me@bonfacemunyoki.com>
+;;; Copyright © 2021, 2023 Munyoki Kilyungi <me@bonfacemunyoki.com>
 ;;; Copyright © 2022 Malte Frank Gerdes <malte.f.gerdes@gmail.com>
 ;;; Copyright © 2022 Felix Gruber <felgru@posteo.net>
 ;;; Copyright © 2022 Tomasz Jeneralczyk <tj@schwi.pl>
@@ -1834,7 +1834,7 @@ supported by the MyPy typechecker.")
 (define-public python-mypy
   (package
     (name "python-mypy")
-    (version "0.971")
+    (version "0.981")
     (source
      (origin
        ;; Because of https://github.com/python/mypy/issues/9584, the
@@ -1851,7 +1851,7 @@ supported by the MyPy typechecker.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "0i8swdynms1wpiprgqn24za6mx8rlgxr2jash3cb5xi8jyf58n97"))))
+         "0awigl51an7466yk236f9vsbqpz2jzd6dsg9v5a4cia37vz4li0a"))))
     (build-system python-build-system)
     (arguments
      `(#:phases

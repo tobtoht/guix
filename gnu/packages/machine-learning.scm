@@ -115,6 +115,37 @@
   #:use-module (gnu packages xorg)
   #:use-module (ice-9 match))
 
+(define-public fasttext
+  (package
+    (name "fasttext")
+    (version "0.9.2")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/facebookresearch/fastText")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "07cz2ghfq6amcljaxpdr5chbd64ph513y8zqmibfx2xwfp74xkhn"))))
+    (build-system cmake-build-system)
+    ;; Tests require downloading of test data.
+    (arguments (list #:tests? #false))
+    (home-page "https://github.com/facebookresearch/fastText")
+    (synopsis "Library for fast text representation and classification")
+    (description "fastText is a library for efficient learning of word
+representations and sentence classification.")
+    (license license:expat)))
+
+(define-public python-fasttext
+  (package
+    (inherit fasttext)
+    (name "python-fasttext")
+    (build-system pyproject-build-system)
+    (propagated-inputs (list python-numpy python-scipy))
+    (inputs (list fasttext))
+    (native-inputs (list pybind11))))
+
 (define-public fann
   ;; The last release is >100 commits behind, so we package from git.
   (let ((commit "d71d54788bee56ba4cf7522801270152da5209d7"))
@@ -408,7 +439,7 @@ Performance is achieved by using the LLVM JIT compiler.")
   (deprecated-package "guile-aiscm-next" guile-aiscm))
 
 (define-public llama-cpp
-  (let ((commit "3cd8dde0d1357b7f11bdd25c45d5bf5e97e284a0")
+  (let ((commit "f31b5397143009d682db90fd2a6cde83f1ef00eb")
         (revision "0"))
     (package
       (name "llama-cpp")
@@ -421,7 +452,7 @@ Performance is achieved by using the LLVM JIT compiler.")
                (commit (string-append "master-" (string-take commit 7)))))
          (file-name (git-file-name name version))
          (sha256
-          (base32 "0i7c92cxqs31xklrn688978kk29agivgxjgvsb45wzm65gc6hm5c"))))
+          (base32 "0ys6n53n032zq1ll9f3vgxk8sw0qq7x3fi7awsyy13adzp3hn08p"))))
       (build-system cmake-build-system)
       (arguments
        (list
@@ -449,18 +480,13 @@ Performance is achieved by using the LLVM JIT compiler.")
                       (chmod (string-append bin script) #o555)))
                   (mkdir-p bin)
                   (make-script "convert-pth-to-ggml")
-                  (make-script "convert-gptq-to-ggml")
-                  (make-script "quantize.py")
-                  (substitute* (string-append bin "quantize.py")
-                    (("os\\.getcwd\\(\\), quantize_script_binary")
-                     (string-append "\"" bin "\", quantize_script_binary"))))))
+                  (make-script "convert-lora-to-ggml")
+                  (make-script "convert"))))
             (add-after 'install-python-scripts 'wrap-python-scripts
               (assoc-ref python:%standard-phases 'wrap))
             (replace 'install
               (lambda _
-                (let ((bin (string-append #$output "/bin/")))
-                  (install-file "bin/quantize" bin)
-                  (copy-file "bin/main" (string-append bin "llama"))))))))
+                (copy-file "bin/main" (string-append #$output "/bin/llama")))))))
       (inputs (list python))
       (propagated-inputs
        (list python-numpy python-pytorch python-sentencepiece))
@@ -1159,7 +1185,7 @@ with a single function call.")
 (define-public rxcpp
   (package
     (name "rxcpp")
-    (version "4.1.0")
+    (version "4.1.1")
     (source
      (origin
        (method git-fetch)
@@ -1167,7 +1193,7 @@ with a single function call.")
              (url "https://github.com/ReactiveX/RxCpp")
              (commit (string-append "v" version))))
        (sha256
-        (base32 "1rdpa3jlc181jd08nk437aar085h28i45s6nzrv65apb3xyyz0ij"))
+        (base32 "1blyjjw6szd74pckdc15ham9i48xf0vwwz5nhl9vyjfq8z7w3piy"))
        (file-name (git-file-name name version))))
     (build-system cmake-build-system)
     (arguments
@@ -1199,7 +1225,7 @@ I/O.")
 
 
 (define-public gemmlowp
-  (let ((commit "f9959600daa42992baace8a49544a00a743ce1b6")
+  (let ((commit "08e4bb339e34017a0835269d4a37c4ea04d15a69")
         (version "0.1")
         (revision "1"))
     (package
@@ -1212,13 +1238,14 @@ I/O.")
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "1hzfhlhzcb827aza6a7drydc67dw5fm3qfqilb9ibskan8dsf0c6"))))
+                  "1q8f3w5slxd8fbn31hpm00y6wyp7gm71rzr27cmcff4b3px4ca6k"))))
       (arguments
        `(#:configure-flags
          (list ,@(match (%current-system)
                    ((or "x86_64-linux" "i686-linux")
                     '("-DCMAKE_CXX_FLAGS=-msse2"))
-                   (_ '())))
+                   (_ '()))
+               "-DBUILD_SHARED_LIBS=ON")
          #:phases
          (modify-phases %standard-phases
            ;; This directory contains the CMakeLists.txt.
@@ -1994,6 +2021,39 @@ interactive learning.")
 optimization over awkward search spaces, which may include real-valued,
 discrete, and conditional dimensions.")
     (license license:bsd-3)))
+
+(define-public python-deepxde
+  (package
+    (name "python-deepxde")
+    (version "1.9.3")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "DeepXDE" version))
+              (sha256
+               (base32
+                "1zw2gqssc0s3maf4gdjckxmzx1d3036hbp1iir26kd08hxj93vzs"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list #:tests? #f                  ; there are no tests
+           #:phases #~(modify-phases %standard-phases
+                        (add-before 'sanity-check 'writable-home
+                          ;; sanity-check writes ~/.deepxde/config.json to set
+                          ;; the default backend.
+                          (lambda _
+                            (setenv "HOME" "/tmp"))))))
+    ;; DeepXDE supported backends are TensorFlow (v1 and v2), PyTorch, JAX and
+    ;; PaddlePaddle.  We test with PyTorch because we have it up to date.
+    (native-inputs (list python-pytorch python-setuptools-scm))
+    (propagated-inputs (list python-matplotlib python-numpy
+                             python-scikit-learn python-scikit-optimize
+                             python-scipy))
+    (home-page "https://deepxde.readthedocs.io/en/latest/")
+    (synopsis "Library for scientific machine learning")
+    (description "DeepXDE is a library for scientific machine learning and
+physics-informed learning.  It includes implementations for the PINN
+(physics-informed neural networks), DeepONet (deep operator network) and
+MFNN (multifidelity neural network) algorithms.")
+    (license license:lgpl2.1+)))
 
 ;; There have been no proper releases yet.
 (define-public kaldi
@@ -4389,7 +4449,7 @@ and Numpy.")
 (define-public python-pyro-ppl
   (package
     (name "python-pyro-ppl")
-    (version "1.8.1")
+    (version "1.8.6")
     ;; The sources on pypi don't include tests.
     (source
      (origin
@@ -4399,7 +4459,7 @@ and Numpy.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0ns20mr8qgjshzbplrfzaz1xhb9ldbgvrj2rzlsxvns2bi1ddyl5"))))
+        (base32 "0n1vsih99pvswcaygdxkc6kq6r48ny130z6ca8pp3281396r2ykw"))))
     (build-system python-build-system)
     (arguments
      `(#:phases

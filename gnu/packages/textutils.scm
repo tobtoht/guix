@@ -25,6 +25,8 @@
 ;;; Copyright © 2021 Felix Gruber <felgru@posteo.net>
 ;;; Copyright © 2021 Bonface Munyoki Kilyungi <me@bonfacemunyoki.com>
 ;;; Copyright © 2022 Gabriel Wicki <gabriel@erlikon.ch>
+;;; Copyright © 2023 Reza Housseini <reza@housseini.me>
+;;; Copyright © 2023 Hilton Chain <hako@ultrarare.space>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -690,29 +692,26 @@ spreadsheets and outputs it in comma-separated-value format, and
 (define-public utfcpp
   (package
     (name "utfcpp")
-    (version "2.3.5")
+    (version "3.2.4")
     (source (origin
               (method git-fetch)
               (uri (git-reference
                      (url "https://github.com/nemtrif/utfcpp")
                      (commit (string-append "v" version))))
               (file-name (git-file-name name version))
+              (modules '((guix build utils)))
+              ;; Unbundle ftest
+              (snippet
+               '(begin
+                  (delete-file-recursively "extern")
+                  (substitute* (find-files "tests" "\\.cpp")
+                    (("\"../extern/ftest/ftest.h\"")
+                     "<ftest/ftest.h>"))))
               (sha256
                (base32
-                "1gr98d826z6wa58r1s5i7rz7q2x3r31v7zj0pjjlrc7gfxwklr4s"))))
+                "0p18cbdk57ilbgcgprgqp7fgysb5i0nidczbhc5rnxkiiw4jvxgn"))))
     (build-system cmake-build-system)
-    (arguments
-     `(#:out-of-source? #f
-       #:phases
-       (modify-phases %standard-phases
-         (replace 'install              ; no install target
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let* ((out (assoc-ref outputs "out"))
-                    (include (string-append out "/include"))
-                    (doc (string-append out "/share/doc/" ,name)))
-               (copy-recursively "source" include)
-               (install-file "README.md" doc)
-               #t))))))
+    (native-inputs (list ftest))
     (home-page "https://github.com/nemtrif/utfcpp")
     (synopsis "Portable C++ library for handling UTF-8")
     (description "UTF8-CPP is a C++ library for handling UTF-8 encoded text
@@ -1470,7 +1469,7 @@ JSON for post-processing
 (define-public ack
   (package
     (name "ack")
-    (version "3.5.0")
+    (version "3.7.0")
     (source (origin
               (method git-fetch)
               (uri
@@ -1479,7 +1478,7 @@ JSON for post-processing
                 (commit (string-append "v" version))))
               (file-name (git-file-name name version))
               (sha256
-               (base32 "00131vqjbzcn6w22m0h3j6x9kp59dimfnnqhpmi78vbcj0jws1dv"))))
+               (base32 "0xrbgjj3nys4158nskd0npqf825xlrqa2x3fqcfz0nnxai2jzbck"))))
     (build-system perl-build-system)
     (arguments
      `(#:phases

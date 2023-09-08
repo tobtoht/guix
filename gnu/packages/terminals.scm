@@ -33,6 +33,8 @@
 ;;; Copyright © 2022 Felipe Balbi <balbi@kernel.org>
 ;;; Copyright © 2022 ( <paren@disroot.org>
 ;;; Copyright © 2022 jgart <jgart@dismail.de>
+;;; Copyright © 2023 Aaron Covrig <aaron.covrig.us@ieee.org>
+;;; Copyright © 2023 Foundation Devices, Inc. <hello@foundationdevices.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -92,12 +94,14 @@
   #:use-module (gnu packages linux)
   #:use-module (gnu packages man)
   #:use-module (gnu packages ncurses)
+  #:use-module (gnu packages pcre)
   #:use-module (gnu packages perl)
   #:use-module (gnu packages perl-check)
   #:use-module (gnu packages pkg-config)
   #:use-module (gnu packages popt)
   #:use-module (gnu packages protobuf)
   #:use-module (gnu packages python)
+  #:use-module (gnu packages python-check)
   #:use-module (gnu packages python-web)
   #:use-module (gnu packages python-xyz)
   #:use-module (gnu packages qt)
@@ -105,6 +109,7 @@
   #:use-module (gnu packages sphinx)
   #:use-module (gnu packages ssh)
   #:use-module (gnu packages textutils)
+  #:use-module (gnu packages tls)
   #:use-module (gnu packages xdisorg)
   #:use-module (gnu packages xml)
   #:use-module (gnu packages xorg)
@@ -184,61 +189,40 @@ configurable through a graphical wizard.")
 (define-public termite
   (package
     (name "termite")
-    (version "15")
+    (version "16.6")
     (source
       (origin
-        (method git-fetch)
-        (uri (git-reference
-              (url (string-append "https://github.com/thestinger/"
-                                  name ".git"))
-              (commit (string-append "v" version))
-              (recursive? #t)))
-        (file-name (string-append name "-" version "-checkout"))
+        (method url-fetch)
+        ;; XXX: The release includes a modified version of VTE.
+        (uri (string-append
+              "https://github.com/aperezdc/termite/releases/download/v"
+              version "/termite-" version ".tar.xz"))
         (sha256
          (base32
-          "0hp1x6lj098m3jgna274wv5dv60lnzg22297di68g4hw9djjyd2k"))))
-    (build-system gnu-build-system)
+          "1n8x84pkp7l9xl0sd07jbj5gjb574qm3w7656qlnzw8hf9kr69il"))))
+    (build-system meson-build-system)
     (arguments
-      `(#:phases
-        (modify-phases %standard-phases
-          (add-after 'unpack 'patch-xdg-open
-            (lambda _
-              (substitute* "termite.cc"
-                (("xdg-open") (which "xdg-open")))
-              #t))
-          (delete 'configure))
-        #:tests? #f
-        ;; This sets the destination when installing the necessary terminal
-        ;; capability data, which are not provided by 'ncurses'.  See
-        ;; <https://lists.gnu.org/archive/html/bug-ncurses/2009-10/msg00031.html>.
-        #:make-flags (list "PREFIX="
-                           (string-append "VERSION=v" (version))
-                           (string-append "DESTDIR="
-                                          (assoc-ref %outputs "out")))))
+     (list #:configure-flags
+           #~(list "-Dvte:_systemd=false")
+           #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'unpack 'patch-xdg-open
+                 (lambda _
+                   (substitute* "termite.cc"
+                     (("xdg-open") (which "xdg-open")))))
+               (replace 'install
+                 (lambda _
+                   (invoke "meson" "install" "--skip-subprojects" "vte"))))))
     (inputs
-     `(("vte" ,vte-ng)
-       ("gtk+" ,gtk+)
-       ("xdg-utils" ,xdg-utils)
-       ("ncurses" ,ncurses)))
+     (list gnutls gtk+ pcre2 xdg-utils))
     (native-inputs
-     (list pkg-config))
-
-    ;; FIXME: This should only be located in 'ncurses'.  Nonetheless it is
-    ;; provided for usability reasons.  See <https://bugs.gnu.org/22138>.
-    (native-search-paths
-      (list (search-path-specification
-              (variable "TERMINFO_DIRS")
-              (files '("share/terminfo")))))
-    (home-page "https://github.com/thestinger/termite/")
+     (list (list glib "bin") pkg-config))
+    (home-page "https://github.com/aperezdc/termite/")
     (synopsis "Keyboard-centric, VTE-based terminal")
-    (description "Termite is a minimal terminal emulator.  It is no longer
-maintained as the author considers it obsoleted by Alacritty.
-
-It was designed for use with tiling window managers.  It is a modal
-application, similar to Vim, with an insert mode and command mode where
-keybindings have different functions.")
-
-    ;; Files under util/ are under the Expat license; the rest is LGPLv2+.
+    (description "Termite is a minimal terminal emulator, with a slightly
+modified version of VTE exposing the necessary functions for keyboard text
+selection and URL hints.  It was designed for use with tiling window
+managers.")
     (license license:lgpl2.0+)))
 
 (define-public asciinema
@@ -842,7 +826,7 @@ eye-candy, customizable, and reasonably lightweight.")
 (define-public foot
   (package
     (name "foot")
-    (version "1.14.0")
+    (version "1.15.2")
     (home-page "https://codeberg.org/dnkl/foot")
     (source (origin
               (method git-fetch)
@@ -850,7 +834,7 @@ eye-candy, customizable, and reasonably lightweight.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1187805pxygyl547w75i4cl37kaw8y8ng11r5qqldv6fm74k31mk"))))
+                "1iz9l01fpryc335pb0c3qi67fmmfplizv5pbc9s578mxl5j9dxg4"))))
     (build-system meson-build-system)
     (arguments
      `(;; Using a "release" build is recommended both for performance, and
@@ -1176,6 +1160,81 @@ terminal.  It features string-like objects which carry formatting information,
 per-line fullscreen terminal rendering, and keyboard input event reporting.")
     (license license:expat)))
 
+(define-public python-halo
+  (package
+    (name "python-halo")
+    (version "0.0.31")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "halo" version))
+              (sha256
+               (base32
+                "1mn97h370ggbc9vi6x8r6akd5q8i512y6kid2nvm67g93r9a6rvv"))))
+    (build-system pyproject-build-system)
+    (propagated-inputs (list python-colorama python-log-symbols python-six
+                             python-spinners python-termcolor))
+    (native-inputs (list python-coverage python-nose python-pylint python-tox
+                         python-twine))
+    (home-page "https://github.com/manrajgrover/halo")
+    (synopsis "Python library to display graphical spinners in the terminal")
+    (description "Halo is a Python library to display graphical spinners in
+the terminal.  It also supports IPython/Jupyter.")
+    (license license:expat)))
+
+(define-public python-log-symbols
+  (package
+    (name "python-log-symbols")
+    (version "0.0.14")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "log_symbols" version))
+              (sha256
+               (base32
+                "0mh5d0igw33libfmbsr1ri1p1y644p36nwaa2w6kzrd8w5pvq2yg"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'unpack 'relax-requirements
+                 (lambda _
+                   (substitute* "requirements-dev.txt"
+                     (("(.*)==(.*)$" _ dep ver)
+                      (string-append dep ">=" ver))))))))
+    (propagated-inputs (list python-colorama))
+    (native-inputs (list python-coverage python-nose python-pylint python-tox))
+    (home-page "https://github.com/manrajgrover/py-log-symbols")
+    (synopsis "Python library with graphical symbols for logging on the terminal")
+    (description "This package provides a Python library with graphical symbols
+that can be displayed on the terminal, with color if possible, for logging
+purposes.")
+    (license license:expat)))
+
+(define-public python-spinners
+  (package
+    (name "python-spinners")
+    (version "0.0.24")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "spinners" version))
+              (sha256
+               (base32
+                "0zz2z6dpdjdq5z8m8w8dfi8by0ih1zrdq0caxm1anwhxg2saxdhy"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'unpack 'relax-requirements
+                 (lambda _
+                   (substitute* "requirements-dev.txt"
+                     (("(.*)==(.*)$" _ dep ver)
+                      (string-append dep ">=" ver))))))))
+    (native-inputs (list python-coverage python-nose python-pylint python-tox))
+    (home-page "https://github.com/manrajgrover/py-spinners")
+    (synopsis "Python library with graphical spinners for the terminal")
+    (description "Spinners is a Python library that contains graphical spinners
+that can be displayed terminal.")
+    (license license:expat)))
+
 (define-public tmate
   (package
     (name "tmate")
@@ -1205,7 +1264,7 @@ tmux.")
 (define-public kitty
   (package
     (name "kitty")
-    (version "0.20.3")
+    (version "0.21.2")
     (home-page "https://sw.kovidgoyal.net/kitty/")
     (source
      (origin
@@ -1215,7 +1274,8 @@ tmux.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "13qv4469q9q2xdrb77lbyw4dz491zf1qvqx4adp0dd9annnlir5c"))
+        (base32 "0y0mg8rr18mn0wzym7v48x6kl0ixd5q387kr5jhbdln55ph2jk9d"))
+       (patches (search-patches "kitty-fix-wayland-protocols.patch"))
        (modules '((guix build utils)))
        (snippet
         '(begin
@@ -1231,70 +1291,68 @@ tmux.")
            #t))))
     (build-system gnu-build-system)
     (native-inputs
-     `(("libdbus" ,dbus)
-       ("libgl1-mesa" ,mesa)
-       ("libxcursor" ,libxcursor)
-       ("libxi" ,libxi)
-       ("libxinerama" ,libxinerama)
-       ("libxkbcommon" ,libxkbcommon)
-       ("libxrandr" ,libxrandr)
-       ("ncurses" ,ncurses) ;; for tic command
-       ("pkg-config" ,pkg-config)
-       ("sphinx" ,python-sphinx)
-       ("wayland-protocols" ,wayland-protocols)))
+     (list dbus
+           mesa
+           libxcursor
+           libxi
+           libxinerama
+           libxkbcommon
+           libxrandr
+           ncurses ;; for tic command
+           pkg-config
+           python-sphinx
+           wayland-protocols))
     (inputs
-     `(("fontconfig" ,fontconfig)
-       ("freetype" ,freetype)
-       ("harfbuzz" ,harfbuzz)
-       ("lcms" ,lcms)
-       ("libcanberra" ,libcanberra)
-       ("libpng" ,libpng)
-       ("pygments" ,python-pygments)
-       ("python" ,python-wrapper)
-       ("wayland" ,wayland)
-       ("zlib" ,zlib)))
+     (list fontconfig
+           freetype
+           harfbuzz
+           lcms
+           libcanberra
+           libpng
+           python-pygments
+           python-wrapper
+           wayland
+           zlib))
     (arguments
-     '(#:phases (modify-phases %standard-phases
-                  (delete 'configure)   ;no configure script
-                  (replace 'build
-                    (lambda* (#:key inputs #:allow-other-keys)
-                      ;; The "kitty" sub-directory must be writable prior to
-                      ;; configuration (e.g., un-setting updates).
-                      (for-each make-file-writable (find-files "kitty"))
-
-                      (invoke "python3" "setup.py" "linux-package"
-                              ;; Do not phone home.
-                              "--update-check-interval=0"
-                              ;; Wayland backend requires EGL, which isn't
-                              ;; found out-of-the-box for some reason.
-                              (string-append "--egl-library="
-                                             (assoc-ref inputs "libgl1-mesa")
-                                             "/lib/libEGL.so.1"))))
-                  (replace 'check
-                    (lambda _
-                      ;; Fix "cannot find kitty executable" error when running
-                      ;; tests.
-                      (setenv "PATH" (string-append "linux-package/bin:"
-                                                    (getenv "PATH")))
-                      (invoke "python3" "test.py")))
-                  (add-before 'install 'rm-pycache
-                    ;; created python cache __pycache__ are non deterministic
-                    (lambda _
-                      (let ((pycaches (find-files "linux-package/"
-                                                  "__pycache__"
-                                                  #:directories? #t)))
-                        (for-each delete-file-recursively pycaches)
-                        #t)))
-                  (replace 'install
-                    (lambda _
-                      (let* ((out (assoc-ref %outputs "out"))
-                             (obin (string-append out "/bin"))
-                             (olib (string-append out "/lib"))
-                             (oshare (string-append out "/share")))
-                        (copy-recursively "linux-package/bin" obin)
-                        (copy-recursively "linux-package/share" oshare)
-                        (copy-recursively "linux-package/lib" olib)
-                        #t))))))
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (delete 'configure)   ;no configure script
+          (replace 'build
+            (lambda* (#:key inputs #:allow-other-keys)
+              ;; The "kitty" sub-directory must be writable prior to
+              ;; configuration (e.g., un-setting updates).
+              (for-each make-file-writable (find-files "kitty"))
+              (invoke "python3" "setup.py" "linux-package"
+                      ;; Do not phone home.
+                      "--update-check-interval=0"
+                      ;; Wayland backend requires EGL, which isn't
+                      ;; found out-of-the-box for some reason.
+                      (string-append "--egl-library="
+                                     (search-input-file inputs "/lib/libEGL.so.1")))))
+          (replace 'check
+            (lambda* (#:key tests? #:allow-other-keys)
+              (when tests?
+                ;; Fix "cannot find kitty executable" error when running
+                ;; tests.
+                (setenv "PATH" (string-append "linux-package/bin:"
+                                              (getenv "PATH")))
+                (invoke "python3" "test.py"))))
+          (add-before 'install 'rm-pycache
+            ;; created python cache __pycache__ are non deterministic
+            (lambda _
+              (let ((pycaches (find-files "linux-package/"
+                                          "__pycache__"
+                                          #:directories? #t)))
+                (for-each delete-file-recursively pycaches))))
+          (replace 'install
+            (lambda _
+              (let* ((obin (string-append #$output "/bin"))
+                     (olib (string-append #$output "/lib"))
+                     (oshare (string-append #$output "/share")))
+                (copy-recursively "linux-package/bin" obin)
+                (copy-recursively "linux-package/share" oshare)
+                (copy-recursively "linux-package/lib" olib)))))))
     (synopsis "Fast, featureful, GPU based terminal emulator")
     (description "Kitty is a fast and featureful GPU-based terminal emulator:
 @itemize
@@ -1359,50 +1417,54 @@ while also supporting native scrolling and @command{tmux} control mode
   (deprecated-package "wterm" foot))
 
 (define-public tilix
-  (package
-    (name "tilix")
-    (version "1.9.5")
-    (source
-      (origin
-        (method git-fetch)
-        (uri (git-reference
-               (url "https://github.com/gnunn1/tilix")
-               (commit version)))
-        (file-name (git-file-name name version))
-       (sha256
-        (base32 "1ij3ix6yhi8hicxvglrxjyyv8bch9birrgsr8ml6jfh3hvk4pxdh"))))
-    (build-system meson-build-system)
-    (arguments
-     `(#:glib-or-gtk? #t
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'unpack 'set-env-variables
-           (lambda _
-             (setenv "CC" ,(cc-for-target))))
-         (add-after 'unpack 'skip-gtk-update-icon-cache
-           (lambda _
-             (substitute* "meson_post_install.py"
-               (("gtk-update-icon-cache") (which "true"))
-               (("update-desktop-database") (which "true"))))))))
-    (inputs
-     (list dbus
-           dconf
-           gsettings-desktop-schemas
-           gtk+
-           gtkd
-           ldc
-           libsecret
-           libunwind
-           vte))
-    (native-inputs
-     (list appstream
-           gettext-minimal
-           (list glib "bin")
-           ldc
-           pkg-config))
-    (home-page "https://gnunn1.github.io/tilix-web/")
-    (synopsis "Tiling terminal emulator")
-    (description "Tilix is a tiling terminal emulator following the
+  (let ((commit "8726e9e9426e6b05c8cadfe7fe5205e8cbc910e3")
+        (revision "0"))
+    (package
+      (name "tilix")
+      ;; No release in over a year so include commits that fix glibc related
+      ;; build issues.
+      (version (git-version "1.9.5" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/gnunn1/tilix")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "0vbjfk6zn9r56nxhlgy77szv7ai061ds53hsz9zba0v9kyzzcdml"))))
+      (build-system meson-build-system)
+      (arguments
+       `(#:glib-or-gtk? #t
+         #:phases
+         (modify-phases %standard-phases
+           (add-after 'unpack 'set-env-variables
+             (lambda _
+               (setenv "CC" ,(cc-for-target))))
+           (add-after 'unpack 'skip-gtk-update-icon-cache
+             (lambda _
+               (substitute* "meson_post_install.py"
+                 (("gtk-update-icon-cache") (which "true"))
+                 (("update-desktop-database") (which "true"))))))))
+      (inputs
+       (list dbus
+             dconf
+             gsettings-desktop-schemas
+             gtk+
+             gtkd
+             ldc
+             libsecret
+             libunwind
+             vte))
+      (native-inputs
+       (list appstream
+             gettext-minimal
+             (list glib "bin")
+             ldc
+             pkg-config))
+      (home-page "https://gnunn1.github.io/tilix-web/")
+      (synopsis "Tiling terminal emulator")
+      (description "Tilix is a tiling terminal emulator following the
 Gnome Human Interface Guidelines.  Its features include:
 @enumerate
 @item Layout terminals in any fashion by splitting them horizontally or
@@ -1414,7 +1476,7 @@ windows.
 terminal are replicated to the others.
 @item Supports notifications when processes are completed out of view.
 @end enumerate")
-    (license license:mpl2.0)))
+    (license license:mpl2.0))))
 
 (define-public tio
   (package
@@ -1448,7 +1510,7 @@ basic input/output.")
        ;; it does not contain "extra" directory with completions, icon, etc.
        (method git-fetch)
        (uri (git-reference
-             (url "https://github.com/jwilm/alacritty")
+             (url "https://github.com/alacritty/alacritty")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
@@ -1535,6 +1597,10 @@ basic input/output.")
                (mkdir-p man)
                (copy-file "extra/alacritty.man"
                           (string-append man "/alacritty.1"))
+               ;; Install example configuration.
+               (install-file "alacritty.yml"
+                             (string-append share "/doc/alacritty-"
+                                            ,(package-version this-package) "/example"))
                ;; Install desktop file.
                (install-file "extra/linux/Alacritty.desktop"
                              (string-append share "/applications"))
@@ -1581,7 +1647,7 @@ basic input/output.")
      (list (search-path-specification
             (variable "TERMINFO_DIRS")
             (files '("share/terminfo")))))
-    (home-page "https://github.com/alacritty/alacritty")
+    (home-page "https://alacritty.org/")
     (synopsis "GPU-accelerated terminal emulator")
     (description
      "Alacritty is a GPU-accelerated terminal emulator with a strong focus on

@@ -470,6 +470,13 @@ OpenSSL for TARGET."
                                 #$(target->openssl-target
                                    (%current-target-system))))))
                  #~())
+          #$@(if (target-hurd?)
+                 #~((add-after 'unpack 'patch-configure
+                      (lambda _
+                        (substitute* "config"
+                          (("case \"\\$GUESSOS\" in.*" all)
+                           (string-append all "hurd-x86*) OUT=hurd-x86;;\n"))))))
+                 #~())
           (replace 'configure
             (lambda* (#:key configure-flags #:allow-other-keys)
               ;; It's not a shebang so patch-source-shebangs misses it.
@@ -585,7 +592,15 @@ OpenSSL for TARGET."
               (lambda* (#:key native-inputs inputs #:allow-other-keys)
                 (setenv "HASHBANGPERL"
                         (search-input-file (or native-inputs inputs)
-                                           "/bin/perl"))))))))
+                                           "/bin/perl"))))
+            #$@(if (target-hurd?)
+                   #~((delete 'patch-configure))
+                   #~())))
+       ((#:configure-flags flags #~'())
+        (if (system-hurd?)
+            #~(append #$flags '("hurd-x86")) ;must not be used when
+                                             ;cross-compiling!
+            flags))))
     (license license:asl2.0)))
 
 (define-public openssl openssl-3.0)
@@ -644,14 +659,14 @@ kilobytes of RAM.")
 (define-public libressl
   (package
     (name "libressl")
-    (version "3.6.1")
+    (version "3.7.3")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://openbsd/LibreSSL/"
                                   "libressl-" version ".tar.gz"))
               (sha256
                (base32
-                "0x37037rb0zx34zp0kbbqj2xwd57gh1m6bfn52f92fz92q9wdymc"))))
+                "1csx6gfgiqr43dw23qj2mr5jbkcd99kqavwb4vbmp0hcm5bchj3r"))))
     (build-system gnu-build-system)
     (arguments
      `(#:configure-flags

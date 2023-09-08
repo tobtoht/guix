@@ -220,7 +220,7 @@ comparison modes: words, characters, and appearance.")
            gettext-minimal
            ghostscript
            pkg-config
-           texlive-tiny))
+           (texlive-updmap.cfg)))
     (inputs
      (list poppler))
     (home-page "https://github.com/trueroad/extractpdfmark")
@@ -455,7 +455,7 @@ Poppler PDF rendering library.")
 (define-public libharu
   (package
     (name "libharu")
-    (version "2.4.2")
+    (version "2.4.3")
     (source
      (origin
        (method git-fetch)
@@ -464,7 +464,7 @@ Poppler PDF rendering library.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1jwzqvv81zf5f7zssyixhyjirlp9ddwkbaabd177syb1bxljlsdc"))))
+        (base32 "00b89zqf0bxslx03ginzqdjg84zfmblq13p5f4xm0h05j7aq7ixz"))))
     (build-system cmake-build-system)
     (arguments
      (list #:tests? #f                  ; No tests
@@ -489,13 +489,13 @@ reading and editing of existing PDF files.")
 (define-public xpdf
   (package
    (name "xpdf")
-   (version "4.03")
+   (version "4.04")
    (source
     (origin
       (method url-fetch)
       (uri (string-append "https://dl.xpdfreader.com/xpdf-" version ".tar.gz"))
       (sha256
-       (base32 "0ip81c9vy0igjnasl9iv2lz214fb01vvvdzbvjmgwc63fi1jgr0g"))))
+       (base32 "1pmsark94xza8q31wvfvp8n7l3c4qfd4ggj09i98y13npzy27kk3"))))
    (build-system cmake-build-system)
    (inputs (list cups freetype libpng qtbase-5 zlib))
    (arguments
@@ -1040,14 +1040,13 @@ using a stylus.")
     (inputs
      (list alsa-lib
            gtk+
-           librsvg
+           (librsvg-for-system)
            libsndfile
            libxml2
            libzip
            lua
            poppler
-           portaudio
-           texlive-bin))
+           portaudio))
     (home-page "https://github.com/xournalpp/xournalpp")
     (synopsis "Handwriting notetaking software with PDF annotation support")
     (description "Xournal++ is a hand note taking software written in

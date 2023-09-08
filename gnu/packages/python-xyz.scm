@@ -99,7 +99,7 @@
 ;;; Copyright © 2021 LibreMiami <packaging-guix@libremiami.org>
 ;;; Copyright © 2021 Xinglu Chen <public@yoctocell.xyz>
 ;;; Copyright © 2021 Raghav Gururajan <rg@raghavgururajan.name>
-;;; Copyright © 2021 jgart <jgart@dismail.de>
+;;; Copyright © 2021, 2023 jgart <jgart@dismail.de>
 ;;; Copyright © 2021 Danial Behzadi <dani.behzi@ubuntu.com>
 ;;; Copyright © 2021 Maxime Devos <maximedevos@telenet.be>
 ;;; Copyright © 2021 Hugo Lecomte <hugo.lecomte@inria.fr>
@@ -139,6 +139,8 @@
 ;;; Copyright © 2023 Dominik Delgado Steuter <d@delgado.nrw>
 ;;; Copyright © 2023 Ivan Vilata-i-Balaguer <ivan@selidor.net>
 ;;; Copyright © 2023 Ontje Lünsdorf <ontje.luensdorf@dlr.de>
+;;; Copyright © 2023 Parnikkapore <poomklao@yahoo.com>
+;;; Copyright © 2023 Foundation Devices, Inc. <hello@foundationdevices.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -622,6 +624,25 @@ to create a well-documented piece of software.")
      "DotMap is a dot-access dictionary subclass that has dynamic
 hierarchy creation, can be initialized with keys, can be initialized from a
 dictionary, can be convert to a dictionary, and is ordered by insertion.")
+    (license license:expat)))
+
+(define-public python-dotty-dict
+  (package
+    (name "python-dotty-dict")
+    (version "1.3.1")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "dotty_dict" version))
+              (sha256
+               (base32
+                "058sah2nyg44xq5wxywlzc3abzcv9fifnlvsflwma9mfp01nw0ab"))))
+    (build-system pyproject-build-system)
+    (native-inputs (list python-poetry-core))
+    (home-page "https://github.com/pawelzny/dotty_dict")
+    (synopsis "Python library for accessing dictionaries using a dot syntax")
+    (description "This package provides a library that wraps the traditional
+Python dictionaries and provides a syntax to access nested dictionaries values
+using a dot syntax, for example: @code{dictionary['deeply.nested.key']}.")
     (license license:expat)))
 
 (define-public python-twodict
@@ -1170,17 +1191,21 @@ Markdown.  All extensions are found under the module namespace of pymdownx.")
               (sha256
                (base32
                 "0rv0cbala7ibjbaf6kkcn0mdhqdbajnvlcw0f15gwzfwg10g0z1q"))))
-    (build-system python-build-system)
+    (build-system pyproject-build-system)
+    (arguments
+     ;; This single test tries to write to $HOME/.cache/pint.
+     (list #:test-flags #~'("-k" "not test_auto")))
     (native-inputs
-     (list python-pytest                ;for pytest-subtests
+     (list python-dask
+           python-distributed
+           python-importlib-metadata
+           python-pytest                ;for pytest-subtests
            python-pytest-cov
            python-pytest-mpl
            python-pytest-subtests
            python-setuptools-scm
            python-sparse
-           python-dask
-           python-xarray
-           python-distributed))
+           python-xarray))
     (home-page "https://github.com/hgrecco/pint")
     (synopsis "Physical quantities module")
     (description
@@ -2166,6 +2191,30 @@ access to HDF5 files, datasets and groups using established Python and NumPy
 concepts.")
     (license license:bsd-3)))
 
+(define-public python-hjson
+  ;; Using commit from master branch as the PyPI version does not contain
+  ;; the hjson/tests/ directory.
+  (let ((revision "0")
+        (commit "1687b811fcbbc54b5ac71cfbaa99f805e406fbcb"))
+    (package
+      (name "python-hjson")
+      (version (git-version "3.1.0" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                       (url "https://github.com/hjson/hjson-py")
+                       (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "1qfqnhvfx5mm7bdajjnnagmvns1zxyksjzh3k5la2ag6a8bp5gki"))))
+      (build-system pyproject-build-system)
+      (home-page "https://github.com/hjson/hjson-py")
+      (synopsis "Python package to parse HJSON documents")
+      (description "This package provides a Python library and a command-line
+interface utility to parse @url{https://hjson.github.io/, HJSON}) documents.")
+      (license license:expat))))
+
 (define-public python-hnswlib
   (package
     (name "python-hnswlib")
@@ -2446,7 +2495,7 @@ conventions and aliases in the same expression.")
              (setenv "MAGICK_HOME" (assoc-ref inputs "imagemagick"))
              (setenv "WAND_MAGICK_LIBRARY_SUFFIX" ".Q16")))
          (replace 'check
-           (lambda _
+           (lambda* (#:key tests? #:allow-other-keys)
              (when tests?
                (invoke "pytest" "-vv")))))))
     (native-inputs
@@ -4190,6 +4239,26 @@ package.")
      "Extras is a set of extensions to the Python standard library.")
     (license license:expat)))
 
+(define-public python-milc
+  (package
+    (name "python-milc")
+    (version "1.6.8")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "milc" version))
+              (sha256
+               (base32
+                "1pnwdg2653lc82qsv6c0kv9qcydh2f6w5mx5l4227zy1f6kr7b52"))))
+    (build-system pyproject-build-system)
+    (propagated-inputs (list python-appdirs python-argcomplete python-colorama
+                             python-halo python-spinners))
+    (home-page "https://github.com/clueboard/milc")
+    (synopsis "Python library for command line interface programs")
+    (description "MILC is a Python library for developing command line
+interface programs.  This library provides features to parse arguments,
+automatic tab-completion, color support, logging to @code{std}, etc.")
+    (license license:expat)))
+
 (define-public python-mimeparse
   (package
     (name "python-mimeparse")
@@ -5764,6 +5833,28 @@ which only supports flat sequences, and allows you to apply a function to each
 leaf preserving the overall structure.")
     (license license:asl2.0)))
 
+(define-public python-pyment
+  (package
+    (name "python-pyment")
+    (version "0.3.4")
+    (source
+       (origin
+         (method git-fetch)
+         (uri
+          (git-reference
+           (url "https://github.com/dadadel/pyment")
+           (commit (string-append "v" version))))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32 "0gbx9wmqsxdx85v5sg79lv2zxmy16j5dwi8bip07i1nyvzc5gvn0"))))
+    (build-system python-build-system)
+    (native-inputs (list python-pytest))
+    (home-page "https://github.com/dadadel/pyment/")
+    (synopsis "Convert Python docstrings automatically")
+    (description "Pyment is a command line tool and library that can be
+used to convert between several docstring styles.")
+    (license license:gpl3+)))
+
 (define-public python-docstring-parser
   (package
     (name "python-docstring-parser")
@@ -6360,7 +6451,7 @@ utility, a static analysis tool (linter) for Robot Framework source files.")
            (lambda* (#:key tests? #:allow-other-keys)
              (when tests? (invoke "pytest" "-vv" "tests")))))))
     (propagated-inputs (list python-paramiko))
-    (native-inputs (list openssh python-pytest))
+    (native-inputs (list openssh python-pytest python-mock))
     (home-page "https://github.com/pahaz/sshtunnel")
     (synopsis "Python SSH tunnels library")
     (description "@code{sshtunnel} is a Python module for easily creating SSH
@@ -7252,13 +7343,15 @@ capabilities.")
            python-sphinx-4
            python-sphinx-panels
            texinfo
-           texlive-bin
-           texlive-cbfonts
-           texlive-cm-super
-           texlive-greek-fontenc
-           texlive-latex-expdlist
-           texlive-polyglossia
-           texlive-xindy))
+           (texlive-updmap.cfg
+            (list texlive-cbfonts
+                  texlive-cm-super
+                  texlive-expdlist
+                  texlive-greek-fontenc
+                  texlive-latexmk
+                  texlive-polyglossia
+                  texlive-xetex
+                  texlive-xindy))))
     (inputs '())
     (propagated-inputs '())
     (synopsis "Documentation for the @code{python-numpy} package")
@@ -7308,14 +7401,14 @@ objects.")
 (define-public python-sparse
   (package
     (name "python-sparse")
-    (version "0.13.0")
+    (version "0.14.0")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "sparse" version))
        (sha256
         (base32
-         "05ar1lhq1yy4nb78s7vpb1wz4ac4kj0r4lrd7yrf23kpmaacjpb8"))))
+         "1600xad37mff46xg80cy6bi3l2n6jm69j7sl19rzdmkcgyijfn2z"))))
     (build-system python-build-system)
     (arguments
      `(#:phases
@@ -7327,8 +7420,8 @@ objects.")
     (propagated-inputs
      (list python-numba python-numpy python-scipy))
     (native-inputs
-     (list python-dask python-pytest python-pytest-black
-           python-pytest-cov))
+     (list python-dask python-importlib-metadata python-pytest
+           python-pytest-black python-pytest-cov))
     (home-page "https://github.com/pydata/sparse/")
     (synopsis "Library for multi-dimensional sparse arrays")
     (description
@@ -8037,26 +8130,26 @@ toolkits.")
      (list graphviz
            inkscape/stable
            python-colorspacious
+           python-ipython
+           python-ipywidgets
            python-mpl-sphinx-theme
+           python-numpydoc
            python-scipy
            python-sphinx
            python-sphinx-copybutton
            python-sphinx-gallery
            python-sphinxcontrib-svg2pdfconverter
-           python-numpydoc
-           python-ipython
-           python-ipywidgets
+           texinfo
            texlive-amsfonts
            texlive-amsmath
            texlive-babel
-           texlive-fontspec
-           texlive-unicode-math
            texlive-etoolbox
-           texlive-latex-expdlist
-           texlive-underscore
-           texlive-latex-type1cm
+           texlive-expdlist
+           texlive-fontspec
            texlive-times
-           texinfo))
+           texlive-type1cm
+           texlive-underscore
+           texlive-unicode-math))
     (synopsis "Documentation for the @code{python-matplotlib} package")))
 
 (define-public python-matplotlib-inline
@@ -8920,6 +9013,53 @@ numpy arrays to TIFF, BigTIFF, and ImageJ hyperstack compatible files.")
 converting, and viewing many of the proprietary file formats used to store
 experimental data and metadata at the Laboratory for Fluorescence Dynamics.")
     (license license:bsd-3)))
+
+(define-public python-ffmpeg-python
+  ;; The latest release (0.2.0) is old and its test suite crashs on Python 3.10.
+  (let ((commit "df129c7ba30aaa9ffffb81a48f53aa7253b0b4e6") (revision "0"))
+    (package
+      (name "python-ffmpeg-python")
+      (version (git-version "0.2.0" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/kkroening/ffmpeg-python.git")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "1zj4ac37n4igfj21zy405mdlvbpv6jyb12wfpszf8zkhhj2qby4c"))))
+      (build-system python-build-system)
+      (arguments
+       (list
+        #:phases
+        #~(modify-phases %standard-phases
+            (add-after 'unpack 'hardcode-ffmpeg
+              (lambda* (#:key inputs #:allow-other-keys)
+                (define ffmpeg (search-input-file inputs "bin/ffmpeg"))
+                (substitute* "ffmpeg/_run.py"
+                  (("cmd='ffmpeg'")
+                   (string-append "cmd='" ffmpeg "'")))
+                (substitute* "ffmpeg/tests/test_ffmpeg.py"
+                  (("out_file.compile\\(\\) == \\['ffmpeg'")
+                   (string-append "out_file.compile() == ['" ffmpeg "'")))))
+            ;; Some tests fail with ffmpeg 5+
+            (replace 'check
+              (lambda* (#:key tests? #:allow-other-keys)
+                (when tests?
+                  (invoke "pytest" "-vv"
+                          "-k" "not test_pipe and not test__probe")))))))
+      (inputs (list ffmpeg))
+      (propagated-inputs (list python-future))
+      (native-inputs (list python-future python-numpy python-pytest
+                           python-pytest-mock python-pytest-runner))
+      (home-page "https://github.com/kkroening/ffmpeg-python")
+      (synopsis "Python bindings for FFmpeg with complex filtering support")
+      (description
+       "ffmpeg-python allows you to write FFmpeg filtergraphs in familiar
+Python terms, taking care of running ffmpeg with the correct command-line
+arguments.  It handles arbitrarily large (directed-acyclic) signal graphs.")
+      (license license:asl2.0))))
 
 (define-public python-imageio-ffmpeg
   (package
@@ -10852,9 +10992,11 @@ computing.")
            python-sphinx
            python-sphinx-rtd-theme
            texinfo
-           texlive-bin
-           texlive-polyglossia
-           texlive-xindy))))
+           (texlive-updmap.cfg
+            (list texlive-latexmk
+                  texlive-polyglossia
+                  texlive-xetex
+                  texlive-xindy))))))
 
 (define-public python-urwid
   (package
@@ -11444,30 +11586,38 @@ Python style, together with a fast and comfortable execution environment.")
        (file-name (git-file-name name version))
        (sha256
         (base32 "09yrpi9f86r9yvcm2dfjs5zy87c4j31bxama77kfd6y8yfrrjlai"))))
-    (build-system python-build-system)
+    (build-system pyproject-build-system)
     (arguments
-     '(#:phases
-       (modify-phases %standard-phases
-         ;; For cluster execution Snakemake will call Python.  Since there is
-         ;; no suitable GUIX_PYTHONPATH set, cluster execution will fail.  We
-         ;; fix this by calling the snakemake wrapper instead.
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          ;; For cluster execution Snakemake will call Python.  Since there is
+          ;; no suitable GUIX_PYTHONPATH set, cluster execution will fail.  We
+          ;; fix this by calling the snakemake wrapper instead.
 
-         ;; XXX: There is another instance of sys.executable on line 692, but
-         ;; it is not clear how to patch it.
-         (add-after 'unpack 'call-wrapper-not-wrapped-snakemake
-           (lambda* (#:key outputs #:allow-other-keys)
-             (substitute* "snakemake/executors/__init__.py"
-               (("\\{sys.executable\\} -m snakemake")
-                (string-append (assoc-ref outputs "out")
-                               "/bin/snakemake")))))
-         (replace 'check
-           (lambda* (#:key tests? #:allow-other-keys)
-             (when tests?
-               (setenv "HOME" "/tmp")
-               ;; This test attempts to change S3 buckets on AWS and fails
-               ;; because there are no AWS credentials.
-               (delete-file "tests/test_tibanna.py")
-               (invoke "pytest")))))))
+          ;; XXX: There is another instance of sys.executable on line 692, but
+          ;; it is not clear how to patch it.
+          (add-after 'unpack 'call-wrapper-not-wrapped-snakemake
+            (lambda* (#:key outputs #:allow-other-keys)
+              (substitute* "snakemake/executors/__init__.py"
+                (("\\{sys.executable\\} -m snakemake")
+                 (string-append #$output "/bin/snakemake")))))
+          (add-after 'unpack 'patch-version
+            (lambda _
+              (substitute* "setup.py"
+                (("version=versioneer.get_version\\(\\)")
+                 (format #f "version=~s" #$version)))
+              (substitute* '("snakemake/_version.py"
+                             "versioneer.py")
+                (("0\\+unknown") #$version))))
+          (replace 'check
+            (lambda* (#:key tests? #:allow-other-keys)
+              (when tests?
+                (setenv "HOME" "/tmp")
+                ;; This test attempts to change S3 buckets on AWS and fails
+                ;; because there are no AWS credentials.
+                (delete-file "tests/test_tibanna.py")
+                (invoke "pytest")))))))
     (propagated-inputs
      (list python-appdirs
            python-configargparse
@@ -11512,32 +11662,41 @@ Python style, together with a fast and comfortable execution environment.")
        (file-name (git-file-name name version))
        (sha256
         (base32 "1qrqbmx4cbis0wxr6dl2rdjv9v627sbirsz6v5c31vlbqwkvs04q"))))
-    (build-system python-build-system)
+    (build-system pyproject-build-system)
     (arguments
-     '(#:phases
-       (modify-phases %standard-phases
-         ;; For cluster execution Snakemake will call Python.  Since there is
-         ;; no suitable GUIX_PYTHONPATH set, cluster execution will fail.  We
-         ;; fix this by calling the snakemake wrapper instead.
-         (add-after 'unpack 'call-wrapper-not-wrapped-snakemake
-           (lambda* (#:key outputs #:allow-other-keys)
-             (substitute* "snakemake/executors/__init__.py"
-               (("self\\.get_python_executable\\(\\),")
-                "")
-               (("\"-m snakemake\"")
-                (string-append "\"" (assoc-ref outputs "out")
-                               "/bin/snakemake" "\"")))))
-         (replace 'check
-           (lambda* (#:key tests? #:allow-other-keys)
-             (when tests?
-               (setenv "HOME" "/tmp")
-               ;; This test attempts to change S3 buckets on AWS and fails
-               ;; because there are no AWS credentials.
-               (delete-file "tests/test_tibanna.py")
-               ;; It's a similar story with this test, which requires access
-               ;; to the Google Storage service.
-               (delete-file "tests/test_google_lifesciences.py")
-               (invoke "pytest")))))))
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          ;; For cluster execution Snakemake will call Python.  Since there is
+          ;; no suitable GUIX_PYTHONPATH set, cluster execution will fail.  We
+          ;; fix this by calling the snakemake wrapper instead.
+          (add-after 'unpack 'call-wrapper-not-wrapped-snakemake
+            (lambda* (#:key outputs #:allow-other-keys)
+              (substitute* "snakemake/executors/__init__.py"
+                (("self\\.get_python_executable\\(\\),")
+                 "")
+                (("\"-m snakemake\"")
+                 (string-append "\"" #$output
+                                "/bin/snakemake" "\"")))))
+          (add-after 'unpack 'patch-version
+            (lambda _
+              (substitute* "setup.py"
+                (("version=versioneer.get_version\\(\\)")
+                 (format #f "version=~s" #$version)))
+              (substitute* '("snakemake/_version.py"
+                             "versioneer.py")
+                (("0\\+unknown") #$version))))
+          (replace 'check
+            (lambda* (#:key tests? #:allow-other-keys)
+              (when tests?
+                (setenv "HOME" "/tmp")
+                ;; This test attempts to change S3 buckets on AWS and fails
+                ;; because there are no AWS credentials.
+                (delete-file "tests/test_tibanna.py")
+                ;; It's a similar story with this test, which requires access
+                ;; to the Google Storage service.
+                (delete-file "tests/test_google_lifesciences.py")
+                (invoke "pytest")))))))
     (propagated-inputs
      (list python-appdirs
            python-configargparse
@@ -13298,16 +13457,16 @@ third-party code.")
 (define-public python-llfuse
   (package
     (name "python-llfuse")
-    (version "1.4.1")
+    (version "1.4.4")
     (source (origin
               (method url-fetch)
               (uri (pypi-uri "llfuse" version))
               (sha256
                (base32
-                "1jaf790rsxvz3hs9fbr3hrnmg0xzl6a2bqfa10bbbsjsdbcpk762"))))
+                "1jb4c9avvb0v3830xlbj1r9kj05i98vv6nq05105ppg57y7lq14j"))))
     (build-system python-build-system)
     (inputs
-     (list fuse attr))
+     (list fuse-2 attr))
     (native-inputs
      (list pkg-config python-pytest))
     (synopsis "Python bindings for FUSE")
@@ -14159,13 +14318,13 @@ implementations of ASN.1-based codecs and protocols.")
 (define-public python-asn1tools
   (package
     (name "python-asn1tools")
-    (version "0.158.0")
+    (version "0.166.0")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "asn1tools" version))
        (sha256
-        (base32 "1k88a1azmyvp2ab6qcf2i40dig5abhyn7cmlyhmwwh8kr3syvma0"))))
+        (base32 "1hragm8dsm10rlyz67xslj01bycprlnimdmq1i2acns6kl6difpn"))))
     (build-system python-build-system)
     (propagated-inputs
      (list python-bitstruct python-diskcache python-prompt-toolkit
@@ -15185,37 +15344,38 @@ time.")
            texlive-adjustbox
            texlive-booktabs
            texlive-caption
+           texlive-collection-basic
            texlive-enumitem
+           texlive-environ
+           texlive-eurosym
+           texlive-fancyvrb
+           texlive-float
            texlive-fontspec
-           texlive-iftex
+           texlive-geometry
            texlive-grffile
            texlive-hyperref
-           texlive-fancyvrb
-           texlive-latex-float
-           texlive-latex-geometry
-           texlive-latex-jknapltx
+           texlive-jknapltx
+           texlive-jknapltx
+           texlive-lm
+           texlive-lm-math
+           texlive-mathpazo
            texlive-ms
-           texlive-latex-parskip
-           texlive-latex-trimspaces
-           texlive-latex-upquote
+           texlive-parskip
+           texlive-pdfcol
+           texlive-pgf
+           texlive-rsfs
            texlive-stringenc
            texlive-tcolorbox
            texlive-titling
            texlive-tools
+           texlive-trimspaces
+           texlive-ucs
            texlive-ulem
            texlive-unicode-math
+           texlive-upquote
            texlive-xcolor
-           (texlive-updmap.cfg (list texlive-amsfonts
-                                     texlive-amsmath
-                                     texlive-eurosym
-                                     texlive-fonts-rsfs
-                                     texlive-jknappen
-                                     texlive-latex-ucs
-                                     texlive-lm
-                                     texlive-lm-math
-                                     texlive-mathpazo
-                                     texlive-oberdiek
-                                     texlive-zapfding))))
+           texlive-xetex
+           texlive-zapfding))
     (home-page "https://jupyter.org")
     (synopsis "Converting Jupyter Notebooks")
     (description "The @code{nbconvert} tool, @code{jupyter nbconvert}, converts
@@ -20927,13 +21087,13 @@ Mustache templating language renderer.")
 (define-public python-duckdb
   (package
     (name "python-duckdb")
-    (version "0.8.0")
+    (version "0.8.1")
     (source (origin
               (method url-fetch)
               (uri (pypi-uri "duckdb" version))
               (sha256
                (base32
-                "13y1gs565q51li5fi9m7fpf0sqns8frsaii6v95acwjhmdds73f6"))))
+                "1sgfmii5xlkbx3hzyjxg80gl2ni1rxpabahl4gww9by2mgs3fkd5"))))
     (build-system pyproject-build-system)
     (arguments
      (list
@@ -22858,6 +23018,57 @@ library.")
     (description
      "This is the Cython-coded accelerator module for PyOpenGL.")))
 
+(define-public python-glcontext
+  (package
+    (name "python-glcontext")
+    (version "2.4.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/moderngl/glcontext")
+                    (commit version)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0zzpwyqg19y600n09xz07cxk4jimh9vjraszda7g7ipijq6iasac"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list #:phases #~(modify-phases %standard-phases
+                        (add-before 'build 'fix-lib-paths
+                          (lambda* (#:key inputs outputs #:allow-other-keys)
+                            (let ((mesa (assoc-ref inputs "mesa"))
+                                  (libx11 (assoc-ref inputs "libx11")))
+                              (substitute* '("glcontext/x11.cpp"
+                                             "glcontext/egl.cpp")
+                                (("\"libGL.so\"")
+                                 (string-append "\"" mesa "/lib/libGL.so\""))
+                                (("\"libEGL.so\"")
+                                 (string-append "\"" mesa "/lib/libEGL.so\""))
+                                (("\"libX11.so\"")
+                                 (string-append "\"" libx11 "/lib/libX11.so\"")))
+                              (substitute* '("glcontext/__init__.py")
+                                (("find_library\\('GL'\\)")
+                                 (string-append "'" mesa "/lib/libGL.so'"))
+                                (("find_library\\('EGL'\\)")
+                                 (string-append "'" mesa "/lib/libEGL.so'"))
+                                (("find_library\\(\"X11\"\\)")
+                                 (string-append "'" libx11 "/lib/libX11.so'"))))))
+                        (replace 'check
+                          (lambda* (#:key inputs outputs tests?
+                                    #:allow-other-keys)
+                            (when tests?
+                              (system "Xvfb :1 &")
+                              (setenv "DISPLAY" ":1")
+                              (add-installed-pythonpath inputs outputs)
+                              (invoke "pytest" "tests")))))))
+    (inputs (list libx11 mesa))
+    (native-inputs (list xorg-server-for-tests python-pytest python-psutil))
+    (home-page "https://github.com/moderngl/glcontext")
+    (synopsis "Portable OpenGL Context for ModernGL")
+    (description "Python-glcontext is a library providing an OpenGL
+implementation for ModernGL on multiple platforms.")
+    (license license:expat)))
+
 (define-public python-rencode
   (package
    (name "python-rencode")
@@ -23212,17 +23423,15 @@ Git.")
 (define-public python-setuptools-rust
   (package
     (name "python-setuptools-rust")
-    (version "1.1.2")
+    (version "1.6.0")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "setuptools-rust" version))
        (sha256
-        (base32 "1lb57qx1azklgzmalflq960agvwci4bwddw0zvlc9zy00fsvkbd0"))))
-    (build-system python-build-system)
+        (base32 "0qi274r0fcnvxa8vs8vyhcknnzhq8pd0ig5zk1wmjc63x96p6vn8"))))
+    (build-system pyproject-build-system)
     (arguments '(#:tests? #f))          ;no tests
-    (native-inputs
-     (list python-setuptools-scm))
     (propagated-inputs
      (list python-semantic-version python-typing-extensions))
     (home-page "https://github.com/PyO3/setuptools-rust")
@@ -24387,10 +24596,9 @@ commit, but it also includes some other useful statistics.")
              (let ((fuse (assoc-ref inputs "fuse")))
                (substitute* "fuse.py"
                  (("find_library\\('fuse'\\)")
-                  (string-append "'" fuse "/lib/libfuse.so'")))
-               #t))))))
+                  (string-append "'" fuse "/lib/libfuse.so'")))))))))
     (propagated-inputs
-     (list fuse))
+     (list fuse-2))
     (home-page "https://github.com/fusepy/fusepy")
     (synopsis "Simple ctypes bindings for FUSE")
     (description "Python module that provides a simple interface to FUSE and
@@ -24417,10 +24625,9 @@ MacFUSE.  The binding is created using the standard @code{ctypes} library.")
              (let ((fuse (assoc-ref inputs "fuse")))
                (substitute* "fusepyng.py"
                  (("os.environ.get\\('FUSE_LIBRARY_PATH'\\)")
-                  (string-append "\"" fuse "/lib/libfuse.so\""))))
-             #t)))))
+                  (string-append "\"" fuse "/lib/libfuse.so\"")))))))))
     (inputs
-     (list fuse))
+     (list fuse-2))
     (propagated-inputs
      (list python-paramiko))
     (home-page "https://github.com/rianhunter/fusepyng")
@@ -29195,13 +29402,7 @@ By default it uses the open Python vulnerability database Safety DB.")
     (propagated-inputs
      `(("wheel" ,python-wheel)))
     (native-inputs
-     `(("texlive" ,(texlive-updmap.cfg (list texlive-amsfonts
-                                        texlive-fonts-ec
-                                        texlive-iftex
-                                        texlive-hyperref
-                                        texlive-oberdiek
-                                        texlive-lm
-                                        texlive-xcolor)))))
+     `(("texlive" ,(texlive-updmap.cfg (list texlive-lm texlive-xcolor)))))
     (arguments
      `(#:phases
        (modify-phases %standard-phases
@@ -31968,10 +32169,10 @@ Psycopg 2 is both Unicode and Python 3 friendly.")
           (base32 "0cvybynv9igssfa4l13q09gb6m7afmwk34wsbq8jk14sqpd4dl92"))))
     (build-system python-build-system)
     (native-inputs (list pkg-config))
-    (inputs (list fuse-3))
+    (inputs (list fuse))
     (propagated-inputs (list python-pytest-trio))
     (home-page "https://github.com/libfuse/pyfuse3")
-    (synopsis "Python bindings FUSE 3")
+    (synopsis "Python bindings to FUSE 3")
     (description "This package provides Python 3 bindings for libfuse 3 with
 async I/O support.")
     (license license:gpl2+)))
@@ -32295,13 +32496,13 @@ than trying to just split strings.")
 (define-public python-srsly
   (package
     (name "python-srsly")
-    (version "2.4.6")
+    (version "2.4.7")
     (source (origin
               (method url-fetch)
               (uri (pypi-uri "srsly" version))
               (sha256
                (base32
-                "0vsafkvk4g0p5m0dqrczqvlyza837i20xxmb24rrqk5s78r1zd27"))))
+                "022x0djlkl6pgh9yrd4avlai1n6y4hxm9l1xnb6630kpi12wrhlk"))))
     (build-system pyproject-build-system)
     (arguments
      (list
@@ -32481,13 +32682,13 @@ message queues for Python.")
 (define-public python-itemadapter
   (package
     (name "python-itemadapter")
-    (version "0.5.0")
+    (version "0.8.0")
     (source
       (origin
         (method url-fetch)
         (uri (pypi-uri "itemadapter" version))
         (sha256
-          (base32 "083wp3h2brh8x19jbdr8rz3biqwp3jlqd0rfzcyrjyhssffsgdh5"))))
+          (base32 "1aa898gjgwy3axxfrgsh4kdvhp6n6wz3ccdishq0gh8azf2q8xbp"))))
     (build-system python-build-system)
     (home-page "https://github.com/scrapy/itemadapter")
     (synopsis "Common interface for data container classes")
@@ -32511,16 +32712,17 @@ implementing a pre-defined interface.")
 (define-public python-itemloaders
   (package
     (name "python-itemloaders")
-    (version "1.0.4")
+    (version "1.1.0")
     (source
       (origin
         (method url-fetch)
         (uri (pypi-uri "itemloaders" version))
         (sha256
-          (base32 "15hc78h90qhwass1bga1c3xar2dd6j8sxg61zg6jvh74lf6csxqj"))))
-    (build-system python-build-system)
+          (base32 "0j2aw4ipalj208594x80blpgkh1i63gqqa4nb67b823av9hirn11"))))
+    (build-system pyproject-build-system)
+    (native-inputs (list python-pytest))
     (propagated-inputs
-      (list python-itemadapter python-jmespath python-parsel python-w3lib))
+     (list python-itemadapter python-jmespath python-parsel python-w3lib))
     (home-page "https://github.com/scrapy/itemloaders")
     (synopsis "Base library for scrapy's ItemLoader")
     (description "Itemloaders is a library that helps you collect data

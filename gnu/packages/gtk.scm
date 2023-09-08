@@ -35,6 +35,7 @@
 ;;; Copyright © 2022 Petr Hodina <phodina@protonmail.com>
 ;;; Copyright © 2023 Sergiu Ivanov <sivanov@colimite.fr>
 ;;; Copyright © 2023 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2023 Janneke Nieuwenhuizen <janneke@gnu.org>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -194,15 +195,21 @@ such as mate-panel and xfce4-panel.")
                        (assoc-ref %outputs "doc")
                        "/share/gtk-doc/html"))))
     (native-inputs
-     `(("gobject-introspection" ,gobject-introspection)
+     `(,@(if (target-hurd?)
+             '()
+             `(("gobject-introspection" ,gobject-introspection)))
        ("pkg-config" ,pkg-config)
        ("python" ,python-wrapper)))
     (inputs
      `(("bash-minimal" ,bash-minimal)   ;for glib-or-gtk-wrap
-       ("drm" ,libdrm)
+       ,@(if (target-hurd?)
+             '()
+             `(("drm" ,libdrm)))
        ("ghostscript" ,ghostscript)
        ("libspectre" ,libspectre)
-       ("poppler" ,poppler)))
+       ,@(if (target-hurd?)
+             '()
+             `(("poppler" ,poppler)))))
     (propagated-inputs
      `( ;; ("cogl" ,cogl)
        ;; ("directfb" ,directfb)
@@ -269,11 +276,13 @@ output.  Experimental backends include OpenGL, BeOS, OS/2, and DirectFB.")
      ;; There are all in the Requires or Requires.private field of '.pc'.
      (list glib graphite2 icu4c))
     (native-inputs
-     (list `(,glib "bin")               ;for glib-mkenums
-           gobject-introspection
-           pkg-config
-           python-wrapper
-           which))
+     (append (list `(,glib "bin"))      ;for glib-mkenums
+             (if (target-hurd?)
+                 '()
+                 (list gobject-introspection))
+             (list pkg-config
+                   python-wrapper
+                   which)))
     (arguments
      (list #:configure-flags
            #~(list "--with-graphite2"
@@ -392,12 +401,15 @@ applications.")
      (list bash-minimal
            zlib))
     (native-inputs
-     (list `(,glib "bin")               ;glib-mkenums, etc.
-           gobject-introspection        ;g-ir-compiler, etc.
-           help2man
-           perl
-           pkg-config
-           python-wrapper))
+     (append (list `(,glib "bin"))      ;glib-mkenums, etc.
+             (if (target-hurd?)
+                 '()
+                 (list gobject-introspection)) ;g-ir-compiler, etc.
+             (list
+              help2man
+              perl
+              pkg-config
+              python-wrapper)))
     (synopsis "Text and font handling library")
     (description "Pango is a library for laying out and rendering of text, with
 an emphasis on internationalization.  Pango can be used anywhere that text
@@ -1582,14 +1594,14 @@ guile-gnome-platform (GNOME developer libraries), and guile-gtksourceview.")
 (define-public cairomm
   (package
     (name "cairomm")
-    (version "1.16.1")
+    (version "1.16.2")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://www.cairographics.org/releases/"
-                                  name "-" version ".tar.xz"))
+                                  "cairomm-" version ".tar.xz"))
               (sha256
                (base32
-                "1im2yjzvjfx8s7cal9kwq23z936kppfmyag2zsnbim4dx7c60q3g"))))
+                "0gy1gn79gwqzrf1d7f7rf25yy2dr7xginkg3al7jpnkxm6cbyqva"))))
     (build-system meson-build-system)
     (outputs '("out" "doc"))
     (arguments
@@ -2388,17 +2400,20 @@ does not deal with windowing system surfaces, drawing, scene graphs, or input.")
 (define-public spread-sheet-widget
   (package
     (name "spread-sheet-widget")
-    (version "0.7")
+    (version "0.8")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://alpha.gnu.org/gnu/ssw/"
                            "spread-sheet-widget-" version ".tar.gz"))
        (sha256
-        (base32 "09rzgp7gabnzab460x874a1ibgyjiibpwzsz5srn9zs6jv2jdxjb"))))
+        (base32 "0jwmx5i02jwmkp6gci2mapqglh2g3a0092wns185hfygiwlxi2c5"))))
     (build-system gnu-build-system)
+    (arguments
+     (list #:configure-flags
+           #~(list "--disable-static")))
     (native-inputs
-     (list `(,glib "bin") ; for glib-genmarshal, etc.
+     (list `(,glib "bin")               ; for glib-genmarshal, etc.
            pkg-config))
     ;; In 'Requires' of spread-sheet-widget.pc.
     (propagated-inputs

@@ -28,7 +28,7 @@
 ;;; Copyright © 2020 Roel Janssen <roel@gnu.org>
 ;;; Copyright © 2020, 2021 Brice Waegeneire <brice@waegenei.re>
 ;;; Copyright © 2020 John D. Boy <jboy@bius.moe>
-;;; Copyright © 2020 Jan (janneke) Nieuwenhuizen <janneke@gnu.org>
+;;; Copyright © 2020, 2023 Janneke Nieuwenhuizen <janneke@gnu.org>
 ;;; Copyright © 2020, 2021, 2022, 2023 Vinicius Monego <monego@posteo.net>
 ;;; Copyright © 2020 Tanguy Le Carrour <tanguy@bioneland.org>
 ;;; Copyright © 2020, 2021, 2022 Michael Rohleder <mike@rohleder.de>
@@ -90,6 +90,7 @@
   #:use-module (gnu packages check)
   #:use-module (gnu packages cook)
   #:use-module (gnu packages curl)
+  #:use-module (gnu packages databases)
   #:use-module (gnu packages docbook)
   #:use-module (gnu packages ed)
   #:use-module (gnu packages file)
@@ -105,6 +106,7 @@
   #:use-module (gnu packages guile)
   #:use-module (gnu packages guile-xyz)
   #:use-module (gnu packages image)
+  #:use-module (gnu packages imagemagick)
   #:use-module (gnu packages linux)
   #:use-module (gnu packages mail)
   #:use-module (gnu packages man)
@@ -117,6 +119,7 @@
   #:use-module (gnu packages pcre)
   #:use-module (gnu packages perl)
   #:use-module (gnu packages perl-check)
+  #:use-module (gnu packages php)
   #:use-module (gnu packages pkg-config)
   #:use-module (gnu packages python)
   #:use-module (gnu packages python-build)
@@ -570,7 +573,14 @@ Python 3.3 and later, rather than on Python 2.")
                     (manpages (assoc-ref inputs "git-manpages")))
                (mkdir-p man)
                (with-directory-excursion man
-                 (invoke "tar" "xvf" manpages))))))))
+                 (invoke "tar" "xvf" manpages)))))
+         ,@(if (system-hurd?)
+               '((add-after 'unpack 'delete-tests/hurd
+                   (lambda _
+                     (delete-file "t/t0052-simple-ipc.sh")
+                     (delete-file "t/t5562-http-backend-content-length.sh")
+                     (delete-file "t/t9902-completion.sh"))))
+               '()))))
 
     (native-search-paths
      ;; For HTTPS access, Git needs a single-file certificate bundle, specified
@@ -1285,12 +1295,54 @@ high-level like git-porcelain, or low-level like git-plumbing.
 It provides abstractions of Git objects for easy access of repository data,
 and additionally allows you to access the Git repository more directly using
 either a pure Python implementation, or the faster, but more resource intensive
-@command{git} command implementation.")
-    (license license:bsd-3)))
-
-(define-public shflags
+ @command{git} command implementation.")
+     (license license:bsd-3)))
+ 
+(define-public savane
   (package
-    (name "shflags")
+    (name "savane")
+    (version "3.10")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://git.savannah.gnu.org/git/administration/savane")
+                    (commit (string-append "release-" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "10jg264wqmkc87nz0d8d2pq4hvradwqrvrpvgpz3h409y6c6v78z"))))
+    (build-system gnu-build-system)
+    (native-inputs
+     (list autoconf
+           automake
+           gettext-minimal
+           imagemagick))
+    (inputs
+     (list exim
+           gnupg
+           httpd
+           mariadb
+           php))
+    (propagated-inputs
+     (list perl
+           perl-dbd-mysql
+           perl-dbi
+           perl-date-calc
+           perl-digest-md5
+           perl-mailtools
+           perl-file-find-rule
+           perl-xml-writer))
+    (synopsis "Web-based software hosting system")
+    (description
+     "Savane is a Web-based software hosting system.  It includes issue
+tracking (bugs, tasks, support, news and documentation), project member
+management by roles and individual account maintenance.")
+    (home-page "https://savannah.nongnu.org/p/administration")
+    (license license:agpl3+)))
+
+ (define-public shflags
+   (package
+     (name "shflags")
     (version "1.2.3")
     (source (origin
               (method git-fetch)
@@ -1512,7 +1564,7 @@ also walk each side of a merge and test those changes individually.")
 wrappers, to be used for optional gitolite extensions."
   (package
     (name "gitolite")
-    (version "3.6.12")
+    (version "3.6.13")
     (source
      (origin
        (method git-fetch)
@@ -1521,10 +1573,10 @@ wrappers, to be used for optional gitolite extensions."
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "05xw1pmagvkrbzga5pgl3xk9qyc6b5x73f842454f3w9ijspa8zy"))))
+        (base32 "0lp4hi8pfg7k0fk0l8wzs8hxp1aspzv78nkafdbbq8m9lzwnwl7x"))))
     (build-system gnu-build-system)
     (arguments
-     (list #:tests? #f ; no tests
+     (list #:tests? #f                  ; no tests
            #:phases
            #~(modify-phases %standard-phases
                (delete 'configure)
@@ -1690,7 +1742,7 @@ visualize your public Git repositories on a web interface.")
 (define-public pre-commit
   (package
     (name "pre-commit") ;formerly known as python-pre-commit
-    (version "3.3.1")
+    (version "3.3.3")
     (source
      (origin
        (method git-fetch)               ; no tests in PyPI release
@@ -1699,7 +1751,7 @@ visualize your public Git repositories on a web interface.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1cssp1p8xmidiimcjfp799zlldbr6id8ar0sf5rs0dd44ns1j3yr"))
+        (base32 "1spkg3ld3s6l7wz24lcywlf1z2ywp751bcdlxjfdsln76bi9ylp8"))
        (modules '((guix build utils)))
        (snippet '(substitute* "setup.cfg"
                    (("virtualenv>=20.10.0") ;our virtualenv (20.3.1) is fine
@@ -2325,6 +2377,15 @@ reviewing large, complex patch files.")
                (substitute* "tests/prt/all-512.sh"
                  (("/bin/sh") (which "sh")))
 
+               (for-each
+                (lambda (file)
+                  (substitute* file (("egrep") "grep -E")))
+                '("tests/common/test-common"
+                  "tests/admin/comment.sh"
+                  "tests/cdc/2comment.sh"
+                  "tests/cdc/4order.sh"
+                  "tests/get/subst.sh"))
+
                ;; XXX: This test has no hope of passing until there is a "nogroup"
                ;; entry (or at least some group to which the guix builder does
                ;; not belong) in the /etc/group file of the build environment.
@@ -2820,14 +2881,14 @@ specific files and directories.")
 (define-public src
   (package
     (name "src")
-    (version "1.31")
+    (version "1.32")
     (source (origin
               (method url-fetch)
               (uri (string-append
                     "http://www.catb.org/~esr/src/src-" version ".tar.gz"))
               (sha256
                (base32
-                "1p8f5xc6k4jrli3iimi64ng11c246qqwsw9bqrrqkrmhvqdh4kcv"))))
+                "0r9i399kkagpwj08nwf1f7c6lr50xjzzgmzwyjjy6ppgcc53a809"))))
     (build-system gnu-build-system)
     (arguments
      '(#:make-flags
@@ -3045,7 +3106,7 @@ will reconstruct the object along its delta-base chain and return it.")
 (define-public git-lfs
   (package
     (name "git-lfs")
-    (version "3.3.0")
+    (version "3.4.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -3054,7 +3115,7 @@ will reconstruct the object along its delta-base chain and return it.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1g268pplld04b9myhlrwc4fd8r1hvfyya5ja8wr558rar3pgsp5g"))))
+                "0ljjs8kyznp2ifkqdcd9q3550sknyx5qxx247icwkd9djjq7x74m"))))
     (build-system go-build-system)
     (arguments
      (list
@@ -3119,7 +3180,7 @@ file contents on a remote server.")
 (define-public lfs-s3
   (package
     (name "lfs-s3")
-    (version "0.1.2")
+    (version "0.1.5")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -3128,7 +3189,7 @@ file contents on a remote server.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0ncfy3lgc7dik9k71xk9l5f2llsh2jk33aaqb8dkslschc1mx4g6"))))
+                "0yilbxpia2lh36s872hiji77hazy83h2zc0iyqldrf3r18szqniw"))))
     (build-system go-build-system)
     (arguments
      (list

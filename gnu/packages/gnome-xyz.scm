@@ -240,6 +240,39 @@ simple and consistent.")
 and a few extra features.")
     (license license:gpl3)))
 
+(define-public qogir-icon-theme
+  (package
+    (name "qogir-icon-theme")
+    (version "2023.06.05")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/vinceliuice/Qogir-icon-theme")
+                    (commit (string-replace-substring version "." "-"))))
+              (file-name (git-file-name name version))
+              (modules '((guix build utils)))
+              (snippet '(substitute* "install.sh"
+                          (("gtk-update-icon-cache") "true")))
+              (sha256
+               (base32
+                "1kn8b9zdamxbfbs7b9qpx53hmjw2l40sxpjw93axb1dqy81yc8da"))))
+    (build-system copy-build-system)
+    (arguments
+     (list #:phases
+           #~(modify-phases %standard-phases
+               (replace 'install
+                 (lambda _
+                   (let* ((dest (string-append #$output "/share/icons"))
+                          (flags (list "--theme" "all"
+                                       "--color" "all"
+                                       "--dest" dest)))
+                     (mkdir-p dest)
+                     (apply invoke "bash" "install.sh" flags)))))))
+    (home-page "https://www.pling.com/p/1296407/")
+    (synopsis "Flat colorful design icon theme")
+    (description "This package provides a flat colorful design icon theme.")
+    (license license:gpl3)))
+
 (define-public flat-remix-icon-theme
   (package
     (name "flat-remix-icon-theme")
@@ -914,7 +947,7 @@ certain elements or change animation speeds.")
 (define-public gnome-shell-extension-dash-to-panel
   (package
     (name "gnome-shell-extension-dash-to-panel")
-    (version "51")
+    (version "56")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -922,7 +955,7 @@ certain elements or change animation speeds.")
                     (commit (string-append "v" version))))
               (sha256
                (base32
-                "103pl77dhafi2ayds5yma2smv3b58zcysnd6vl5m5zavjvk35sz7"))
+                "17rm3wjj8zfdxgh5vp5f35vgd4mc9f9c2w77hac4vyvkgvwfzcnn"))
               (file-name (git-file-name name version))))
     (build-system gnu-build-system)
     (arguments

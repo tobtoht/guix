@@ -15,7 +15,7 @@
 ;;; Copyright © 2020, 2021 Brice Waegeneire <brice@waegenei.re>
 ;;; Copyright © 2020 Mathieu Othacehe <m.othacehe@gmail.com>
 ;;; Copyright © 2020, 2021, 2022 Marius Bakke <marius@gnu.org>
-;;; Copyright © 2020, 2021, 2022 Maxim Cournoyer <maxim.cournoyer@gmail.com>
+;;; Copyright © 2020, 2021, 2022, 2023 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2020 Brett Gilio <brettg@gnu.org>
 ;;; Copyright © 2021 Leo Famulari <leo@famulari.name>
 ;;; Copyright © 2021, 2022 Pierre Langlois <pierre.langlois@gmx.com>
@@ -28,6 +28,8 @@
 ;;; Copyright © 2022 Ekaitz Zarraga <ekaitz@elenq.tech>
 ;;; Copyright © 2022 Arun Isaac <arunisaac@systemreboot.net>
 ;;; Copyright © 2022 Zhu Zihao <all_but_last@163.com>
+;;; Copyright © 2023 Juliana Sims <juli@incana.org>
+;;; Copyright © 2023 Ahmad Draidi <a.r.draidi@redscript.org>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -74,6 +76,7 @@
   #:use-module (gnu packages figlet)
   #:use-module (gnu packages firmware)
   #:use-module (gnu packages flex)
+  #:use-module (gnu packages fonts)
   #:use-module (gnu packages fontutils)
   #:use-module (gnu packages freedesktop)
   #:use-module (gnu packages gettext)
@@ -96,6 +99,7 @@
   #:use-module (gnu packages libusb)
   #:use-module (gnu packages linux)
   #:use-module (gnu packages m4)
+  #:use-module (gnu packages man)
   #:use-module (gnu packages multiprecision)
   #:use-module (gnu packages ncurses)
   #:use-module (gnu packages nettle)
@@ -160,17 +164,15 @@
 (define-public qemu
   (package
     (name "qemu")
-    (version "7.2.1")
+    (version "8.1.0")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://download.qemu.org/qemu-"
                            version ".tar.xz"))
        (sha256
-        (base32
-         "0fypm8blv0la17vvlx6h38nhq2rpavflr9i9zsjl6ylxryd6k1cc"))
-       (patches (search-patches "qemu-build-info-manual.patch"
-                                "qemu-disable-aarch64-migration-test.patch"
+        (base32 "0m8fbyr3xv6gi95ma0sksxfqmyj3pi4zcrgg5rvd8d73k08i033i"))
+       (patches (search-patches "qemu-disable-some-qtests-tests.patch"
                                 "qemu-fix-agent-paths.patch"))
        (modules '((guix build utils)))
        (snippet
@@ -179,8 +181,6 @@
            (with-directory-excursion "pc-bios"
              ;; Delete firmwares provided by SeaBIOS.
              (for-each delete-file (find-files "." "^(bios|vgabios).*\\.bin$"))
-             ;; Delete SGABIOS.
-             (delete-file "sgabios.bin")
              ;; Delete ppc64 OpenBIOS.  TODO: Remove sparc32 and sparc64 too
              ;; once they are supported in Guix.
              (delete-file "openbios-ppc")
@@ -191,12 +191,11 @@
              (for-each delete-file (find-files "." "^(efi|pxe)-.*\\.rom$")))
            ;; Delete bundled code that we provide externally.
            (for-each delete-file-recursively
-                     '("dtc" "meson"
+                     '("subprojects/dtc"
                        "roms/ipxe"
                        "roms/openbios"
                        "roms/opensbi"
-                       "roms/seabios"
-                       "roms/sgabios"))))))
+                       "roms/seabios"))))))
     (outputs '("out" "static" "doc"))   ;5.3 MiB of HTML docs
     (build-system gnu-build-system)
     (arguments
@@ -207,7 +206,6 @@
                    (not (string=? "i686-linux" (%current-system))))
       #:configure-flags
       #~(let ((gcc (search-input-file %build-inputs "/bin/gcc"))
-              (meson (search-input-file %build-inputs "bin/meson"))
               (openbios (search-input-file %build-inputs
                                            "share/qemu/openbios-ppc"))
               (opensbi (search-input-file
@@ -215,25 +213,20 @@
                         "share/qemu/opensbi-riscv64-generic-fw_dynamic.bin"))
               (seabios (search-input-file %build-inputs
                                           "share/qemu/bios.bin"))
-              (sgabios (search-input-file %build-inputs
-                                          "/share/qemu/sgabios.bin"))
               (ipxe (search-input-file %build-inputs
                                        "share/qemu/pxe-virtio.rom"))
               (out #$output))
           (list (string-append "--cc=" gcc)
                 ;; Some architectures insist on using HOST_CC.
                 (string-append "--host-cc=" gcc)
-                (string-append "--meson=" meson)
                 (string-append "--prefix=" out)
-
                 "--sysconfdir=/etc"
                 "--enable-fdt=system"
                 (string-append "--firmwarepath=" out "/share/qemu:"
                                (dirname seabios) ":"
                                (dirname ipxe) ":"
                                (dirname openbios) ":"
-                               (dirname opensbi) ":"
-                               (dirname sgabios))
+                               (dirname opensbi))
                 (string-append "--smbd=" out "/libexec/samba-wrapper")
                 "--disable-debug-info"  ;for space considerations
                 ;; The binaries need to be linked against -lrt.
@@ -254,7 +247,6 @@
               (let* ((seabios (dirname (search-input-file
                                         inputs "share/qemu/bios.bin")))
                      (seabios-firmwares (find-files seabios "\\.bin$"))
-                     (sgabios (search-input-file inputs "share/qemu/sgabios.bin"))
                      (ipxe (dirname (search-input-file
                                      inputs "share/qemu/pxe-virtio.rom")))
                      (ipxe-firmwares (find-files ipxe "\\.rom$"))
@@ -279,7 +271,7 @@
                   (for-each (lambda (file)
                               (symlink file (basename file)))
                             (append seabios-firmwares ipxe-firmwares
-                                    (list openbios opensbi-riscv64 sgabios))))
+                                    (list openbios opensbi-riscv64))))
                 (for-each (lambda (file)
                             (format allowed-differences-whitelist
                                     "\"~a\",~%" file))
@@ -402,8 +394,7 @@
                 (for-each delete-file
                           (append
                            '("openbios-ppc"
-                             "opensbi-riscv64-generic-fw_dynamic.bin"
-                             "sgabios.bin")
+                             "opensbi-riscv64-generic-fw_dynamic.bin")
                            (find-files "." "^(vga)?bios(-[a-z0-9-]+)?\\.bin$")
                            (find-files "." "^(efi|pxe)-.*\\.rom$"))))))
           ;; Create a wrapper for Samba. This allows QEMU to use Samba without
@@ -454,7 +445,6 @@ exec smbd $@")))
            pulseaudio
            sdl2
            seabios-qemu
-           sgabios
            spice
            usbredir
            util-linux
@@ -509,8 +499,7 @@ server and embedded PowerPC, and S390 guests.")
 
 (define-public qemu-minimal
   ;; QEMU without GUI support, only supporting the host's architecture
-  (package
-    (inherit qemu)
+  (package/inherit qemu
     (name "qemu-minimal")
     (outputs '("out" "doc"))
     (synopsis
@@ -553,7 +542,14 @@ server and embedded PowerPC, and S390 guests.")
         #~(modify-phases #$phases
             (delete 'configure-user-static)
             (delete 'build-user-static)
-            (delete 'install-user-static)))))
+            (delete 'install-user-static)
+            (add-after 'disable-unusable-tests 'disable-extra-tests
+              (lambda _
+                ;; Interesting, the iothreads-commit-active test only fails in
+                ;; qemu-minimal, not the complete variant (see:
+                ;; https://gitlab.com/qemu-project/qemu/-/issues/1855).
+                (delete-file
+                 "tests/qemu-iotests/tests/iothreads-commit-active")))))))
 
     ;; Remove dependencies on optional libraries, notably GUI libraries.
     (native-inputs (filter (lambda (input)
@@ -1127,6 +1123,57 @@ Guix to build virtual machines.")
 Debian or a derivative using @command{debootstrap}.")
     (license license:gpl2+)))
 
+(define-public rvvm
+  (package
+    (name "rvvm")
+    (version "0.5")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/LekKit/RVVM")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1ldabcrmpa044bahpqa6ymwbhhwy69slh77f0m3421sq6j50l06p"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list
+       #:configure-flags
+       ;; See src/rvjit/rvjit.h for list of architectures.
+       #~(#$@(if (or (target-x86?)
+                     (target-arm?))
+               #~'()
+               #~(list "-DRVVM_USE_JIT=NO")))
+       #:modules `((srfi srfi-26)
+                  (guix build utils)
+                  (guix build cmake-build-system))
+       #:phases
+       #~(modify-phases %standard-phases
+           ;; Install phase inspired by the Makefile.
+           (replace 'install
+             (lambda _
+               (let ((src "../source/src/")
+                     (incl (string-append #$output "/include/rvvm/")))
+                 (install-file "rvvm" (string-append #$output "/bin"))
+                 (for-each
+                   (cut install-file <> (string-append #$output "/lib"))
+                   (find-files "." "\\.(so|a)$"))
+                 (install-file (string-append src "rvvmlib.h") incl)
+                 (for-each
+                   (cut install-file <> (string-append incl "devices"))
+                   (find-files (string-append src "devices") "\\.h$"))))))
+       #:tests? #f))    ; no tests
+    (home-page "https://github.com/LekKit/RVVM")
+    (synopsis "RISC-V virtual machine")
+    (description
+     "RVVM is a RISC-V CPU and system software implementation written in C.  It
+supports the entire RV64GC ISA, and it passes compliance tests for both RV64 and
+RV32.  OpenSBI, U-Boot, and custom firmwares boot and execute properly.  It is
+capable of running Linux, FreeBSD, OpenBSD, Haiku, and other OSes.  Furthermore,
+it emulates a variety of hardware and peripherals.")
+    (license (list license:gpl3+ license:mpl2.0))))
+
 (define-public spike
   (package
     (name "spike")
@@ -1259,23 +1306,25 @@ manage system or application containers.")
 (define-public lxcfs
   (package
     (name "lxcfs")
-    (version "4.0.11")
+    (version "5.0.4")
     (home-page "https://github.com/lxc/lxcfs")
-    (source (origin
-              (method git-fetch)
-              (uri (git-reference (url home-page)
-                                  (commit (string-append "lxcfs-" version))))
-              (file-name (git-file-name name version))
-              (sha256
-               (base32
-                "02cgzh97cgxh9iyf7gkn5ikdc0sfzqfjj6al0hikdf9rbwcscqwd"))))
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference (url home-page)
+                           (commit (string-append "lxcfs-" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "15cc7kvnln4qqlv22hprfzmq89jbkx7yra730hap8wkvamn33sxy"))))
+    (build-system meson-build-system)
     (arguments
-     '(#:configure-flags '("--localstatedir=/var")))
+     (list
+      #:configure-flags
+      #~(list "-Dinit-script=sysvinit"))) ; no ‘none’ option
     (native-inputs
-     (list autoconf automake libtool pkg-config))
+     (list help2man pkg-config python python-jinja2))
     (inputs
      (list fuse))
-    (build-system gnu-build-system)
     (synopsis "FUSE-based file system for LXC")
     (description "LXCFS is a small FUSE file system written with the intention
 of making Linux containers feel more like a virtual machine.
@@ -1448,7 +1497,7 @@ pretty simple, REST API.")
     (inputs
      (list acl
            attr
-           fuse
+           fuse-2
            libxml2
            eudev
            libpciaccess
@@ -1861,83 +1910,81 @@ Machine Protocol.")
 (define-public looking-glass-client
   (package
     (name "looking-glass-client")
-    (version "B5")
-    (source
-     (origin
-       (method git-fetch)
-       (uri (git-reference
-             (url "https://github.com/gnif/LookingGlass")
-             (commit version)
-             (recursive? #t)))
-       (file-name (git-file-name name version))
-       (sha256
-        (base32
-         "09mn544x5hg1z31l92ksk7fi7yj9r8xdk0dcl9fk56ivcr452ylm"))))
+    (version "B6")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append "https://looking-glass.io/artifact/" version
+                                  "/source"))
+              (file-name (string-append name "-" version ".tar.gz"))
+              (sha256
+               (base32
+                "15d7wwbzfw28yqbz451b6n33ixy50vv8acyzi8gig1mq5a8gzdib"))))
     (build-system cmake-build-system)
-    (inputs
-     (list bash-minimal
-           fontconfig
-           freetype
-           glu
-           gmp
-           libglvnd
-           libiberty
-           libx11
-           libxcursor
-           libxfixes
-           libxi
-           libxinerama
-           libxkbcommon
-           libxpresent
-           libxrandr
-           libxscrnsaver
-           mesa
-           openssl
-           sdl2
-           sdl2-ttf
-           spice-protocol
-           wayland
-           wayland-protocols
-           `(,zlib "static")))
-    (native-inputs (list libconfig nettle pkg-config))
+    (inputs (list bash-minimal
+                  font-dejavu
+                  fontconfig
+                  freetype
+                  glu
+                  gmp
+                  libglvnd
+                  libiberty
+                  libsamplerate
+                  libx11
+                  libxcursor
+                  libxfixes
+                  libxi
+                  libxinerama
+                  libxkbcommon
+                  libxpresent
+                  libxrandr
+                  libxscrnsaver
+                  mesa
+                  pipewire
+                  pulseaudio
+                  spice-protocol
+                  wayland
+                  wayland-protocols
+                  `(,zlib "static")))
+    (native-inputs (list nettle pkg-config))
     (arguments
-     `(#:tests? #f ;; No tests are available.
-       #:make-flags '("CC=gcc")
-       #:phases (modify-phases %standard-phases
-                  (add-before 'configure 'chdir-to-client
-                    (lambda* (#:key outputs #:allow-other-keys)
-                      (chdir "client")
-                      #t))
-                  (replace 'install
-                    (lambda* (#:key outputs #:allow-other-keys)
-                      (install-file "looking-glass-client"
-                                    (string-append (assoc-ref outputs "out")
-                                                   "/bin"))
-                      #t))
-                  (add-after 'install 'wrapper
-                    (lambda* (#:key inputs outputs #:allow-other-keys)
-                      (wrap-program
-                          (string-append (assoc-ref outputs "out")
-                                         "/bin/looking-glass-client")
-                        `("LD_LIBRARY_PATH" ":" prefix
-                          ,(map (lambda (name)
-                                  (let ((input (assoc-ref inputs name)))
-                                    (string-append input "/lib")))
-                                '("gmp"
-                                  "libxi"
-                                  "nettle"
-                                  "mesa"
-                                  "wayland"
-                                  "fontconfig-minimal"
-                                  "freetype"
-                                  "libx11"
-                                  "libxfixes"
-                                  "libxscrnsaver"
-                                  "libxinerama"))))
-                      #t)))))
+     (list #:tests? #f ;No tests are available.
+           ;; Package uses "-march=native" by default. We disable that to build with the
+           ;; lowest supported architecture for reproducibility and CPU compatibility.
+           #:configure-flags #~'("-DOPTIMIZE_FOR_NATIVE=OFF")
+           #:make-flags #~'("CC=gcc")
+           #:phases #~(modify-phases %standard-phases
+                        (add-before 'configure 'chdir-to-client
+                          (lambda* (#:key outputs #:allow-other-keys)
+                            (chdir "client")))
+                        (replace 'install
+                          (lambda* (#:key outputs #:allow-other-keys)
+                            (install-file "looking-glass-client"
+                                          (string-append (assoc-ref outputs
+                                                                    "out")
+                                                         "/bin"))))
+                        (add-after 'install 'wrapper
+                          (lambda* (#:key inputs outputs #:allow-other-keys)
+                            (wrap-program (string-append (assoc-ref outputs
+                                                                    "out")
+                                           "/bin/looking-glass-client")
+                              `("LD_LIBRARY_PATH" ":" prefix
+                                ,(map (lambda (name)
+                                        (let ((input (assoc-ref inputs name)))
+                                          (string-append input "/lib")))
+                                      '("gmp" "libxi"
+                                        "nettle"
+                                        "mesa"
+                                        "wayland"
+                                        "fontconfig-minimal"
+                                        "freetype"
+                                        "libx11"
+                                        "libxfixes"
+                                        "libxscrnsaver"
+                                        "libxinerama")))))))))
     (home-page "https://looking-glass.io/")
     (synopsis "KVM Frame Relay (KVMFR) implementation")
-    (description "Looking Glass allows the use of a KVM (Kernel-based Virtual
+    (description
+     "Looking Glass allows the use of a KVM (Kernel-based Virtual
 Machine) configured for VGA PCI Pass-through without an attached physical
 monitor, keyboard or mouse.  It displays the VM's rendered contents on your
 main monitor/GPU.")
@@ -1948,7 +1995,7 @@ main monitor/GPU.")
 (define-public runc
   (package
     (name "runc")
-    (version "1.1.1")
+    (version "1.1.9")
     (source (origin
               (method url-fetch)
               (uri (string-append
@@ -1957,7 +2004,7 @@ main monitor/GPU.")
               (file-name (string-append name "-" version ".tar.xz"))
               (sha256
                (base32
-                "0jx56x49dgkygdbrfb3pmxycy1n37arj97jra8n422dj36xz1hbm"))))
+                "1hhxqwg0mblrgv2aim3scfd9xg13l6i22j124sdma5sf2fzgx5bn"))))
     (build-system go-build-system)
     (arguments
      '(#:import-path "github.com/opencontainers/runc"
@@ -2465,28 +2512,28 @@ administrators and developers in managing the database.")
 (define-public osinfo-db
   (package
     (name "osinfo-db")
-    (version "20230518")
-    (source (origin
-              (method url-fetch)
-              (uri (string-append "https://releases.pagure.org/libosinfo/osinfo-db-"
-                                  version ".tar.xz"))
-              (sha256
-               (base32
-                "0vfch55xgz1p16sv84ahb59apg8j7n8p4kxv0rq7rw7jwk65pv6a"))))
+    (version "20230719")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append "https://releases.pagure.org/libosinfo/osinfo-db-"
+                           version ".tar.xz"))
+       (sha256
+        (base32 "0nl4wh8i9skcg1wx84p31x7rl1xv1267g5ycbn9kfwfnqxzwkl8k"))))
     (build-system trivial-build-system)
     (arguments
-     `(#:modules ((guix build utils))
-       #:builder
-       (begin
-         (use-modules (guix build utils))
-         (let* ((out (assoc-ref %outputs "out"))
-                (osinfo-dir (string-append out "/share/osinfo"))
+     (list
+      #:modules '((guix build utils))
+      #:builder
+      #~(begin
+          (use-modules (guix build utils))
+          (let ((osinfo (string-append #$output "/share/osinfo"))
                 (source (assoc-ref %build-inputs "source"))
-                (osinfo-db-import
-                 (string-append (assoc-ref %build-inputs "osinfo-db-tools")
+                (import-osinfo-db
+                 (string-append #$(this-package-native-input "osinfo-db-tools")
                                 "/bin/osinfo-db-import")))
-           (mkdir-p osinfo-dir)
-           (invoke osinfo-db-import "--dir" osinfo-dir source)))))
+            (mkdir-p osinfo)
+            (invoke import-osinfo-db "--dir" osinfo source)))))
     (native-inputs
      (list intltool osinfo-db-tools))
     (home-page "https://gitlab.com/libosinfo/osinfo-db")

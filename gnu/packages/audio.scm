@@ -37,7 +37,7 @@
 ;;; Copyright © 2021 jgart <jgart@dismail.de>
 ;;; Copyright © 2021 Aleksandr Vityazev <avityazev@posteo.org>
 ;;; Copyright © 2022 Arjan Adriaanse <arjan@adriaan.se>
-;;; Copyright © 2022, 2023 Juliana Sims <jtsims@protonmail.com>
+;;; Copyright © 2022, 2023 Juliana Sims <juli@incana.org>
 ;;; Copyright © 2022 Simon Streit <simon@netpanic.org>
 ;;; Copyright © 2022 Andy Tai <atai@atai.org>
 ;;; Copyright © 2023 Sergiu Ivanov <sivanov@colimite.fr>
@@ -45,6 +45,7 @@
 ;;; Copyright © 2023 Sharlatan Hellseher <sharlatanus@gmail.com>
 ;;; Copyright © 2023 Gabriel Wicki <gabriel@erlikon.ch>
 ;;; Copyright © 2023 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2023 Parnikkapore <poomklao@yahoo.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -116,7 +117,9 @@
   #:use-module (gnu packages pulseaudio)  ;libsndfile, libsamplerate
   #:use-module (gnu packages python)
   #:use-module (gnu packages python-build)
+  #:use-module (gnu packages python-crypto)
   #:use-module (gnu packages python-science)
+  #:use-module (gnu packages python-web)
   #:use-module (gnu packages python-xyz)
   #:use-module (gnu packages qt)
   #:use-module (gnu packages rdf)
@@ -147,8 +150,8 @@
   #:use-module (guix build-system trivial)
   #:use-module (guix build-system waf)
   #:use-module (guix download)
-  #:use-module (guix git-download)
   #:use-module (guix gexp)
+  #:use-module (guix git-download)
   #:use-module ((guix licenses) #:prefix license:)
   #:use-module (guix packages)
   #:use-module (guix utils)
@@ -721,25 +724,18 @@ streams from live audio.")
 purposes developed at Queen Mary, University of London.")
     (license license:gpl2+)))
 
-(define (ardour-rpath-phase major-version)
-  `(lambda* (#:key outputs #:allow-other-keys)
-     (let ((libdir (string-append (assoc-ref outputs "out")
-                                  "/lib/ardour" ,major-version)))
-       (substitute* "wscript"
-         (("linker_flags = \\[\\]")
-          (string-append "linker_flags = [\""
-                         "-Wl,-rpath="
-                         libdir ":"
-                         libdir "/backends" ":"
-                         libdir "/engines" ":"
-                         libdir "/panners" ":"
-                         libdir "/surfaces" ":"
-                         libdir "/vamp" "\"]"))))))
+(define ardour-bundled-media
+  (origin
+    (method url-fetch)
+    (uri "http://stuff.ardour.org/loops/ArdourBundledMedia.zip")
+    (sha256
+     (base32
+      "0k135sm559yywfidrya7h5cddwqa2p2abhimrar2khydf43f03d0"))))
 
 (define-public ardour
   (package
     (name "ardour")
-    (version "7.4")
+    (version "7.5")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -756,7 +752,7 @@ purposes developed at Queen Mary, University of London.")
 namespace ARDOUR { const char* revision = \"" version "\" ; const char* date = \"\"; }")))))
               (sha256
                (base32
-                "0v66h9fghjyjinldw9yfhhlfi3my235x6n4dpxx432z35lka2h89"))
+                "18pgxnxfp0pqsy24cmf3hanr6vh0pnimsh48x5nfbflqy7ljsrkj"))
               (file-name (string-append name "-" version))))
     (build-system waf-build-system)
     (arguments
@@ -769,7 +765,23 @@ namespace ARDOUR { const char* revision = \"" version "\" ; const char* date = \
        #:phases
        (modify-phases %standard-phases
          (add-after 'unpack 'set-rpath-in-LDFLAGS
-          ,(ardour-rpath-phase (version-major version)))
+           (lambda* (#:key outputs #:allow-other-keys)
+             (let ((libdir (string-append (assoc-ref outputs "out")
+                                          "/lib/ardour"
+                                          ,(version-major version))))
+               (substitute* "wscript"
+                 (("linker_flags = \\[\\]")
+                  (string-append "linker_flags = [\""
+                                 "-Wl,-rpath="
+                                 libdir ":"
+                                 libdir "/backends" ":"
+                                 libdir "/engines" ":"
+                                 libdir "/panners" ":"
+                                 libdir "/surfaces" ":"
+                                 libdir "/vamp" "\"]"))))))
+         (add-after 'build 'build-i18n
+           (lambda _
+             (invoke "python" "waf" "i18n")))
          (add-after 'install 'install-freedesktop-files
            (lambda* (#:key outputs #:allow-other-keys)
              (let* ((out   (assoc-ref outputs "out"))
@@ -794,7 +806,14 @@ namespace ARDOUR { const char* revision = \"" version "\" ; const char* date = \
          (add-after 'install 'install-man-page
            (lambda* (#:key outputs #:allow-other-keys)
              (install-file "ardour.1" (string-append (assoc-ref outputs "out")
-                                                     "/share/man/man1")))))
+                                                     "/share/man/man1"))))
+         (add-after 'install 'install-bundled-media
+           (lambda* (#:key outputs #:allow-other-keys)
+             (invoke "unzip" "-d" (string-append (assoc-ref outputs "out")
+                                                 "/share/ardour"
+                                                 ,(version-major version)
+                                                 "/media/")
+                     ,ardour-bundled-media))))
        #:test-target "test"))
     (inputs
      (list alsa-lib
@@ -849,14 +868,17 @@ namespace ARDOUR { const char* revision = \"" version "\" ; const char* date = \
            gettext-minimal
            itstool
            perl
-           pkg-config))
+           pkg-config
+           unzip))
     (home-page "https://ardour.org")
     (synopsis "Digital audio workstation")
     (description
      "Ardour is a multi-channel digital audio workstation, allowing users to
 record, edit, mix and master audio and MIDI projects.  It is targeted at audio
 engineers, musicians, soundtrack editors and composers.")
-    (license license:gpl2+)))
+    (license (list license:gpl2+
+                   license:cc0 ;used by MIDI Beats
+                   license:expat)))) ;used by MIDI Chords and Progressions
 
 (define-public audacity
   (package
@@ -1400,7 +1422,7 @@ envelope follower, distortion effects, tape effects and more.")
 (define-public snapcast
   (package
     (name "snapcast")
-    (version "0.26.0")
+    (version "0.27.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -1409,7 +1431,7 @@ envelope follower, distortion effects, tape effects and more.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "091gf3k1xv3k0m0kf2apr9bwiifw2czjcksd3vzwy544sfgrya08"))))
+                "10l5hvmaqr9ykipsnzl95wqg19ff36rhpa1q88axxcia0k2valkn"))))
     (build-system cmake-build-system)
     (arguments
      '(#:tests? #f))                    ; no included tests
@@ -2810,7 +2832,7 @@ implementation of the Open Sound Control (@dfn{OSC}) protocol.")
 (define-public rtaudio
   (package
     (name "rtaudio")
-    (version "5.1.0")
+    (version "5.2.0")
     (source
      (origin
        (method git-fetch)
@@ -2819,20 +2841,8 @@ implementation of the Open Sound Control (@dfn{OSC}) protocol.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "156c2dgh6jrsyfn1y89nslvaxm4yifmxridsb708yvkaym02w2l8"))))
+        (base32 "189xphhf0winf8b60dx1kk2biz811wk6ps44br7l1lyfhymxcjmi"))))
     (build-system cmake-build-system)
-    (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         ;; The header that pkg-config expects is include/rtaudio/RtAudio.h,
-         ;; but this package installs it as include/RtAudio.h by default.
-         (add-after 'install 'fix-inc-path
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let* ((out (assoc-ref outputs "out"))
-                    (inc (string-append out "/include")))
-               (mkdir-p (string-append inc "/rtaudio"))
-               (rename-file (string-append inc "/RtAudio.h")
-                            (string-append inc "/rtaudio/RtAudio.h"))))))))
     (native-inputs
      (list pkg-config))
     (inputs
@@ -4675,6 +4685,45 @@ flavors EBU R128, ATSC A/85, and ReplayGain 2.0.  It helps normalizing the
 loudness of audio and video files to the same level.")
     (license license:gpl2+)))
 
+(define-public r128gain
+  (package
+    (name "r128gain")
+    (version "1.0.7")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/desbma/r128gain.git")
+                    (commit version)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0zqclskkjb9hfdw9gq6iq4bs9dl1wj9nr8v1jz6s885379q9l8i7"))))
+    (build-system python-build-system)
+    (arguments
+       (list
+        #:phases
+        #~(modify-phases %standard-phases
+            (add-after 'unpack 'hardcode-ffmpeg
+              (lambda* (#:key inputs #:allow-other-keys)
+                (substitute* "r128gain/__init__.py"
+                  (("ffmpeg_path or \"ffmpeg\"")
+                   (string-append "ffmpeg_path or \""
+                                  (search-input-file inputs "bin/ffmpeg")
+                                  "\""))))))))
+    (inputs (list python-crcmod python-ffmpeg-python python-mutagen
+                  python-tqdm ffmpeg))
+    (native-inputs (list python-future python-requests))
+    (home-page "https://github.com/desbma/r128gain")
+    (synopsis "Fast audio loudness scanner & tagger")
+    (description
+     "r128gain is a multi platform command line tool to scan your audio
+files and tag them with loudness metadata (ReplayGain v2 or Opus R128 gain
+format), to allow playback of several tracks or albums at a similar
+loudness level. r128gain can also be used as a Python module from other
+Python projects to scan and/or tag audio files.")
+    ;; 'setup.py' claims LGPL2+, 'LICENSE' is LGPLv2.1.
+    (license license:lgpl2.1+)))
+
 (define-public filteraudio
   (let ((revision "1")
         (commit "2fc669581e2a0ff87fba8de85861b49133306094"))
@@ -5194,7 +5243,7 @@ bluetooth profile.")
 (define-public libopenshot-audio
   (package
     (name "libopenshot-audio")
-    (version "0.3.1")
+    (version "0.3.2")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -5203,7 +5252,7 @@ bluetooth profile.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "164ibsp5g162cyjgpa0ap35h75igmfnmhxmwkkk1fvm1cpbf1jgj"))))
+                "0g49akqhd0jsd0ar6sacdqz6cv8y0a4zclnyliifiidxrkv43fiw"))))
     (build-system cmake-build-system)
     (inputs
      (list alsa-lib
@@ -5214,11 +5263,12 @@ bluetooth profile.")
            libxinerama
            libxcursor))
     (arguments
-     `(#:tests? #f                      ;there are no tests
-       #:configure-flags
-       (list (string-append "-DCMAKE_CXX_FLAGS=-I"
-                            (assoc-ref %build-inputs "freetype")
-                            "/include/freetype2"))))
+     (list
+      #:tests? #f                       ; there are no tests
+      #:configure-flags
+      #~(list (string-append "-DCMAKE_CXX_FLAGS=-I"
+                           #$(this-package-input "freetype")
+                           "/include/freetype2"))))
     (home-page "https://openshot.org")
     (synopsis "Audio editing and playback for OpenShot")
     (description "OpenShot Audio Library (libopenshot-audio) allows
@@ -5919,14 +5969,14 @@ while still staying in time.")
 (define-public butt
   (package
     (name "butt")
-    (version "0.1.34")
+    (version "0.1.38")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://sourceforge/butt/butt/butt-"
                                   version "/butt-" version ".tar.gz"))
               (sha256
                (base32
-                "0zd1g1673pv8z437y34fllxska8dzpd7mygpham35pzwpdyc5c1p"))
+                "10i3xpxzccdl4pidiyymw9cfavhy50yhn7xi5bd77y91f2903kp9"))
               (modules '((guix build utils)))
               (snippet
                '(substitute* "src/butt.cpp"
@@ -5949,9 +5999,10 @@ while still staying in time.")
            (uri (string-append "https://danielnoethen.de/butt/butt-"
                                version "_manual.pdf"))
            (sha256
-            (base32 "0kadqzzbk25n0aqxgbqhg4mq4hsbjq44phzcx5qj1b8847yzz8si"))))))
+            (base32 "04aixxqshfj11ja3ifh0zvywl2mqzmymppcd0xj8sv0j7whjibaq"))))))
     (inputs
-     (list dbus
+     (list curl
+           dbus
            flac
            fltk
            lame
@@ -6236,7 +6287,7 @@ and DSD streams.")
 (define-public qpwgraph
   (package
     (name "qpwgraph")
-    (version "0.4.5")
+    (version "0.5.2")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -6245,7 +6296,7 @@ and DSD streams.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "06pgkma0i9dbir74cfhgnnkqjcq8z496by4lk1whqcj7j9ldbi2l"))))
+                "186c3s56py8xjasbp4380m9sqdba9mf7mppqz8hkli1nhbspbix9"))))
     (build-system cmake-build-system)
     (arguments (list #:tests? #f)) ;; no tests
     (inputs (list alsa-lib

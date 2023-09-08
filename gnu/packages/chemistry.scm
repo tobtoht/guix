@@ -6,7 +6,7 @@
 ;;; Copyright © 2020 Björn Höfling <bjoern.hoefling@bjoernhoefling.de>
 ;;; Copyright © 2020 Vincent Legoll <vincent.legoll@gmail.com>
 ;;; Copyright © 2021 Ricardo Wurmus <rekado@elephly.net>
-;;; Copyright © 2022 David Elsing <david.elsing@posteo.net>
+;;; Copyright © 2022, 2023 David Elsing <david.elsing@posteo.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -87,7 +87,6 @@
     (native-inputs
      (list eigen
            mmtf-cpp
-           msgpack
            googletest
            pkg-config
            pybind11))
@@ -248,7 +247,7 @@ molecules.")
 (define-public mmtf-cpp
   (package
     (name "mmtf-cpp")
-    (version "1.0.0")
+    (version "1.1.0")
     (source
      (origin
        (method git-fetch)
@@ -258,11 +257,13 @@ molecules.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "17ylramda69plf5w0v5hxbl4ggkdi5s15z55cv0pljl12yvyva8l"))))
+         "0rs2f1ppgqz663c3m22p8wsq6z839bj59zy29chci46ypfhwv6ph"))))
     (build-system cmake-build-system)
     ;; Tests require the soon-to-be-deprecated version 1 of the catch-framework.
-    (arguments
-     '(#:tests? #f))
+    (arguments '(#:tests? #f))
+    ;; There is no support for modern msgpack versions yet (see:
+    ;; https://github.com/rcsb/mmtf-cpp/issues/44).
+    (propagated-inputs (list msgpack))  ;included by mmtf/structure_data.hpp
     (home-page "https://mmtf.rcsb.org/")
     (synopsis "C++ API for the Macromolecular Transmission Format")
     (description "This package is a library for the
@@ -554,6 +555,12 @@ symmetries written in C.  Spglib can be used to:
                                     (assoc-ref inputs "libxml2")
                                     "/include/libxml2:"
                                     (getenv "CPLUS_INCLUDE_PATH")))))
+         ;; Prevent deleting the leading / in the __init__.py path in the
+         ;; launch script.
+         (add-after 'unpack 'disable-unchroot
+           (lambda _
+             (substitute* "setup.py"
+               (("self\\.unchroot") ""))))
          ;; The setup.py script does not support one of the Python build
          ;; system's default flags, "--single-version-externally-managed".
          (replace 'install
@@ -568,12 +575,10 @@ symmetries written in C.  Spglib can be used to:
            glew
            libxml2
            mmtf-cpp
-           msgpack
            python-pyqt
            glm
            netcdf))
-    (native-inputs
-     (list catch2 python-setuptools))
+    (native-inputs (list catch2))
     (home-page "https://pymol.org")
     (synopsis "Molecular visualization system")
     (description "PyMOL is a capable molecular viewer and renderer.  It can be
@@ -899,9 +904,9 @@ emphasis on quality rather than speed.")
     (inputs (list openblas))
     (native-inputs
      (list gfortran
-           (texlive-updmap.cfg (list texlive-fonts-ec
-                                     texlive-graphics
-                                     texlive-latex-geometry))))
+           (texlive-updmap.cfg
+            (list texlive-epstopdf
+                  texlive-latexmk))))
     (home-page "https://github.com/greglandrum/yaehmop")
     (synopsis "Perform extended Hückel calculations")
     (description "@acronym{YAeHMOP, Yet Another extended Hueckel Molecular

@@ -3,7 +3,7 @@
 ;;; Copyright © 2015 Mathieu Lirzin <mthl@gnu.org>
 ;;; Copyright © 2015 Mark H Weaver <mhw@netris.org>
 ;;; Copyright © 2016, 2018–2022 Tobias Geerinckx-Rice <me@tobias.gr>
-;;; Copyright © 2016, 2019, 2020, 2021 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2016, 2019-2021, 2023 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016, 2023 Janneke Nieuwenhuizen <janneke@gnu.org>
 ;;; Copyright © 2016 Roel Janssen <roel@gnu.org>
 ;;; Copyright © 2016, 2017 Marius Bakke <mbakke@fastmail.com>
@@ -245,20 +245,22 @@ tmpfs/ramfs filesystems.")
 (define-public parted
   (package
     (name "parted")
-    (version "3.5")
+    (version "3.6")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://gnu/parted/parted-"
                                   version ".tar.xz"))
               (sha256
                (base32
-                "18h51i3x5cbqhlj5rm23m9sfw63gaaby5czln5w6qpqj3ifdsf29"))))
+                "04p6b4rygrfd1jrskwrx3bn2icajg1mvbfhyc0c9l3ya7kixnhrv"))))
     (build-system gnu-build-system)
     (arguments
      (list
       #:configure-flags (if (target-hurd?)
                             #~'("--disable-device-mapper")
                             #~'())
+      #:tests? (not (or (target-hurd?)
+                        (%current-target-system)))
       #:phases
       #~(modify-phases %standard-phases
           (add-after 'unpack 'fix-locales-and-python
@@ -527,6 +529,44 @@ which respectively make and check MS-DOS FAT file systems.")
     (description "This package provides a statically-linked @command{fsck.fat}
 and a @command{fsck.vfat} compatibility symlink for use in an initrd.")
     (license (package-license dosfstools))))
+
+(define-public hdparm
+  (package
+    (name "hdparm")
+    (version "9.65")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append "mirror://sourceforge/hdparm/hdparm/"
+                                  "hdparm-" version ".tar.gz"))
+              (sha256
+               (base32
+                "0jssagggg52ssl9kg99m88afghj7bm1854vyf4p96q6h23wjjjfi"))))
+    (build-system gnu-build-system)
+    (arguments
+     (list #:make-flags
+           #~(list (string-append "binprefix=" #$output)
+                   (string-append "manprefix=" #$output)
+                   (string-append "CC=" #$(cc-for-target))
+                   ;; Let Guix strip binaries and not break cross-compilation.
+                   "STRIP=true")
+           #:phases
+           #~(modify-phases %standard-phases
+               (delete 'configure))     ; no configure script
+           #:tests? #f))                ; no test suite
+    (home-page "https://sourceforge.net/projects/hdparm/")
+    (synopsis "View and tune ATA disk drive parameters")
+    (description
+     "@command{hdparm} is a command-line utility to control ATA controllers and
+disk drives.  It can increase performance and/or reliability by careful tuning
+of hardware settings like power and acoustic management, DMA modes, and caching.
+It can also display detailed device information, or be used as a simple
+performance benchmarking tool.
+
+@command{hdparm} provides a command line interface to various Linux kernel
+interfaces provided by the SATA/ATA/SAS @code{libata} subsystem, and the older
+IDE driver subsystem.  Many external USB drive enclosures with SCSI-ATA Command
+Translation (@dfn{SAT}) are also supported.")
+    (license (license:non-copyleft "file://LICENSE.TXT"))))
 
 (define-public sdparm
   (package
@@ -966,7 +1006,7 @@ passphrases.")
 (define-public ndctl
   (package
     (name "ndctl")
-    (version "75")
+    (version "78")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -975,7 +1015,7 @@ passphrases.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0i3fmda285qnwnmkxzwji5ffz123yrq9dpcwzg922qpysir7zq40"))))
+                "0rhmxjajxxslsikixlf9cdg5vcn42h7zzqkqj5p5pshxch368kn0"))))
     (build-system meson-build-system)
     (arguments
      ;; The test suite runs but SKIPs all tests: do not consider this tested!
@@ -1018,6 +1058,8 @@ passphrases.")
            json-c
            keyutils
            kmod
+           libtraceevent
+           libtracefs
            `(,util-linux "lib")))
     (home-page "https://github.com/pmem/ndctl")
     (synopsis "Manage the non-volatile memory device sub-system in the Linux kernel")
@@ -1127,7 +1169,7 @@ LVM D-Bus API).")
 (define-public rmlint
   (package
     (name "rmlint")
-    (version "2.10.1")
+    (version "2.10.2")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -1136,48 +1178,44 @@ LVM D-Bus API).")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "15xfkcw1bkfyf3z8kl23k3rlv702m0h7ghqxvhniynvlwbgh6j2x"))))
+                "0sk4v1chnk2hvzi92svyf8qgamfs4fvial90qwx4a7dayxhkbsm4"))))
     (build-system scons-build-system)
     (arguments
-     `(#:scons ,scons-python2
-       #:scons-flags (list (string-append "--prefix=" %output)
-                           (string-append "--actual-prefix=" %output))
-       #:tests? #f                      ; No tests?
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'unpack 'scons-propagate-environment
-           (lambda* (#:key inputs #:allow-other-keys)
-             ;; TODO: `rmlint --gui` fails with
-             ;; "Failed to load shredder: No module named 'shredder'".
-             ;; The GUI might also need extra dependencies, such as
-             ;; python-gobject, python-cairo, dconf, librsvg, gtksourceview3.
-             (substitute* "lib/cmdline.c"
-               (("const char \\*commands\\[\\] = \\{\"python3\", \"python\", NULL\\};")
-                (string-append
-                 "const char *commands[] = {\""
-                 (assoc-ref inputs "python") "/bin/python"
-                 "\", \"python\", NULL};")))
-             ;; By design, SCons does not, by default, propagate
-             ;; environment variables to subprocesses.  See:
-             ;; <http://comments.gmane.org/gmane.linux.distributions.nixos/4969>
-             ;; Here, we modify the SConstruct file to arrange for
-             ;; environment variables to be propagated.
-             (substitute* "SConstruct"
-               (("^env = Environment\\(.*\\)" all)
-                (string-append
-                 all
-                 "\nenv['ENV']=os.environ"))))))))
+     (list
+      #:scons scons-python2
+      #:scons-flags
+      #~(list (string-append "--prefix=" #$output)
+              (string-append "--actual-prefix=" #$output))
+      #:tests? #f                       ; no tests
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'scons-propagate-environment
+            (lambda* (#:key inputs #:allow-other-keys)
+              ;; TODO: `rmlint --gui` fails with
+              ;; "Failed to load shredder: No module named 'shredder'".
+              ;; The GUI might also need extra dependencies, such as
+              ;; python-gobject, python-cairo, dconf, librsvg, gtksourceview3.
+              (substitute* "lib/cmdline.c"
+                (("const char \\*commands\\[\\] = \\{\"python3\", \"python\", NULL\\};")
+                 (string-append "const char *commands[] = {\""
+                                (search-input-file inputs "/bin/python")
+                                "\", \"python\", NULL};")))
+              ;; By design, SCons does not, by default, propagate
+              ;; environment variables to subprocesses.  See:
+              ;; <http://comments.gmane.org/gmane.linux.distributions.nixos/4969>
+              ;; Here, we modify the SConstruct file to arrange for
+              ;; environment variables to be propagated.
+              (substitute* "SConstruct"
+                (("^env = Environment\\(.*\\)" all)
+                 (string-append all "\nenv['ENV']=os.environ"))))))))
     (native-inputs
-     `(("pkg-config" ,pkg-config)
-       ("glib:bin" ,glib "bin")
-       ("python-sphinx" ,python-sphinx)))
+     (list `(,glib "bin") pkg-config python-sphinx))
     (inputs
-     `(("python" ,python-wrapper)
-       ("glib" ,glib)
-       ("libelf" ,libelf)
-       ("elfutils" ,elfutils)
-       ("json-glib" ,json-glib)
-       ("libblkid" ,util-linux "lib")))
+     (list elfutils
+           glib
+           json-glib
+           python-wrapper
+           `(,util-linux "lib")))
     (home-page "https://rmlint.rtfd.org")
     (synopsis "Remove duplicates and other lint from the file system")
     (description "@command{rmlint} finds space waste and other broken things

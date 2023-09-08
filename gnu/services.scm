@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2015-2022 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2015-2023 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2016 Chris Marusich <cmmarusich@gmail.com>
 ;;; Copyright © 2020 Jan (janneke) Nieuwenhuizen <janneke@gnu.org>
 ;;; Copyright © 2020, 2021 Ricardo Wurmus <rekado@elephly.net>
@@ -85,6 +85,10 @@
             service-back-edges
             instantiate-missing-services
             fold-services
+
+            remove-service-extensions
+            for-home
+            for-home?
 
             service-error?
             missing-value-service-error?
@@ -320,45 +324,64 @@ is the source location information."
     ((_)
      '())))
 
-(define (apply-clauses clauses services)
-  "Apply CLAUSES, an alist as returned by 'clause-alist', to SERVICES, a list
-of services.  Use each clause at most once; raise an error if a clause was not
-used."
-  (let loop ((services services)
-             (clauses clauses)
-             (result '()))
-    (match services
-      (()
-       (match clauses
-         (()                                      ;all clauses fired, good
-          (reverse result))
-         (((kind _ properties) _ ...)        ;one or more clauses didn't match
-          (raise (make-compound-condition
-                  (condition
-                   (&error-location
-                    (location (source-properties->location properties))))
-                  (formatted-message
-                   (G_ "modify-services: service '~a' not found in service list")
-                   (service-type-name kind)))))))
-      ((head . tail)
-       (let ((service clauses
-                      (fold2 (lambda (clause service remainder)
-                               (if service
-                                   (match clause
-                                     ((kind proc properties)
-                                      (if (eq? kind (service-kind service))
-                                          (values (proc service) remainder)
-                                          (values service
-                                                  (cons clause remainder)))))
-                                   (values #f (cons clause remainder))))
-                             head
+(define (apply-clauses clauses service deleted-services)
+  "Apply CLAUSES, an alist as returned by 'clause-alist', to SERVICE.  An
+exception is raised if a clause attempts to modify a service
+present in DELETED-SERVICES."
+  (define (raise-if-deleted kind properties)
+    (match (find (match-lambda
+                   ((deleted-kind _)
+                    (eq? kind deleted-kind)))
+                 deleted-services)
+      ((_ deleted-properties)
+       (raise (make-compound-condition
+               (condition
+                (&error-location
+                 (location (source-properties->location properties))))
+               (formatted-message
+                (G_ "modify-services: service '~a' was deleted here: ~a")
+                (service-type-name kind)
+                (source-properties->location deleted-properties)))))
+      (_ #t)))
+
+  (match clauses
+    (((kind proc properties) . rest)
+     (raise-if-deleted kind properties)
+     (if (eq? (and service (service-kind service)) kind)
+         (let ((new-service (proc service)))
+           (apply-clauses rest new-service
+                          (if new-service
+                              deleted-services
+                              (cons (list kind properties)
+                                    deleted-services))))
+         (apply-clauses rest service deleted-services)))
+    (()
+     service)))
+
+(define (%modify-services services clauses)
+  "Apply CLAUSES, an alist as returned by 'clause-alist', to SERVICES.  An
+exception is raised if a clause attempts to modify a missing service."
+  (define (raise-if-not-found clause)
+    (match clause
+      ((kind _ properties)
+       (unless (find (lambda (service)
+                       (eq? kind (service-kind service)))
+                     services)
+         (raise (make-compound-condition
+                 (condition
+                  (&error-location
+                   (location (source-properties->location properties))))
+                 (formatted-message
+                  (G_ "modify-services: service '~a' not found in service list")
+                  (service-type-name kind))))))))
+
+  (for-each raise-if-not-found clauses)
+  (reverse (filter-map identity
+                       (fold (lambda (service services)
+                               (cons (apply-clauses clauses service '())
+                                     services))
                              '()
-                             clauses)))
-         (loop tail
-               (reverse clauses)
-               (if service
-                   (cons service result)
-                   result)))))))
+                             services))))
 
 (define-syntax modify-services
   (syntax-rules ()
@@ -393,7 +416,7 @@ It changes the configuration of the GUIX-SERVICE-TYPE instance, and that of
 all the MINGETTY-SERVICE-TYPE instances, and it deletes instances of the
 UDEV-SERVICE-TYPE."
     ((_ services clauses ...)
-     (apply-clauses (clause-alist clauses ...) services))))
+     (%modify-services services (clause-alist clauses ...)))))
 
 
 ;;;
@@ -1224,5 +1247,24 @@ TARGET-TYPE; return the root service adjusted accordingly."
                    (format #f
                            (G_ "more than one target service of type '~a'")
                            (service-type-name target-type)))))))))
+
+(define (remove-service-extensions type lst)
+  "Return TYPE, a service type, without any of the service extensions
+targeting one of the types in LST."
+  (service-type
+   (inherit type)
+   (extensions (remove (lambda (extension)
+                         (memq (service-extension-target extension) lst))
+                       (service-type-extensions type)))))
+
+(define-syntax-parameter for-home?
+  ;; Whether the configuration being defined is for a Home service.
+  (identifier-syntax #f))
+
+(define-syntax-rule (for-home exp ...)
+  "Mark EXP, which typically defines a service configuration, as targeting a
+Home service rather than a System service."
+  (syntax-parameterize ((for-home? (identifier-syntax #t)))
+    exp ...))
 
 ;;; services.scm ends here.

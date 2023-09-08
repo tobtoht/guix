@@ -30,7 +30,7 @@
 ;;; Copyright © 2018 Eric Brown <brown@fastmail.com>
 ;;; Copyright © 2018, 2021 Julien Lepiller <julien@lepiller.eu>
 ;;; Copyright © 2018 Amin Bandali <bandali@gnu.org>
-;;; Copyright © 2019, 2021, 2022 Nicolas Goaziou <mail@nicolasgoaziou.fr>
+;;; Copyright © 2019, 2021-2023 Nicolas Goaziou <mail@nicolasgoaziou.fr>
 ;;; Copyright © 2019 Steve Sprang <scs@stevesprang.com>
 ;;; Copyright © 2019 Robert Smith <robertsmith@posteo.net>
 ;;; Copyright © 2020 Jakub Kądziołka <kuba@kadziolka.net>
@@ -60,6 +60,7 @@
 ;;; Copyright © 2022 Akira Kyle <akira@akirakyle.com>
 ;;; Copyright © 2022 Roman Scherer <roman.scherer@burningswell.com>
 ;;; Copyright © 2023 Jake Leporte <jakeleporte@outlook.com>
+;;; Copyright © 2023 Camilo Q.S. (Distopico) <distopico@riseup.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -81,7 +82,6 @@
   #:use-module (ice-9 match)
   #:use-module (gnu packages)
   #:use-module ((guix licenses) #:prefix license:)
-  #:use-module (guix gexp)
   #:use-module (guix packages)
   #:use-module (guix download)
   #:use-module (guix git-download)
@@ -260,6 +260,39 @@ student to write code, the program offers an intuitive interface with
 interactive dialogs to guide them.")
    (license license:gpl3+)
    (home-page "https://www.gnu.org/software/c-graph/")))
+
+(define-public calc
+  (package
+    (name "calc")
+    (version "2.14.2.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append "http://www.isthe.com/chongo/src/calc/calc-"
+                           version ".tar.bz2"))
+       (sha256
+        (base32 "1swalx3cxjcx4aprnchb2jf0wig89ggvxjzzzx488r115w58lxnr"))))
+    (build-system gnu-build-system)
+    (inputs (list readline))
+    (native-inputs (list util-linux)) ; for col
+    (arguments
+     (list #:phases #~(modify-phases %standard-phases
+                        (delete 'configure)
+                        (add-before 'build 'patch-makefile
+                          (lambda _
+                            (substitute* "Makefile"
+                              (("^PREFIX= /usr/local")
+                               (string-append "PREFIX=" #$output))
+                              (("=\\s?/usr")
+                               "= ${PREFIX}")))))))
+    (synopsis "Arbitrary precision console calculator")
+    (description
+     "Calc is an arbitrary precision arithmetic system that uses a C-like
+language.  It can be used as a calculator, an algorithm prototyper and as
+a mathematical research tool, and it comes with built in mathematical and
+programmatic functions.")
+    (home-page "http://www.isthe.com/chongo/tech/comp/calc/")
+    (license license:lgpl2.1)))
 
 (define-public coda
   (package
@@ -829,29 +862,30 @@ integer programming problems and computes Markov bases for statistics.")
     (version "0.94m")
     (source
      (origin
-      (method git-fetch)
-      (uri (git-reference
-            (url "https://github.com/cddlib/cddlib")
-            (commit version)))
-      (file-name (git-file-name name version))
-      (sha256
-       (base32
-        "09s8323h5w9j6mpl1yc6lm770dkskfxd2ayyafkcjllmnncxzfa0"))))
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/cddlib/cddlib")
+             (commit version)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32
+         "09s8323h5w9j6mpl1yc6lm770dkskfxd2ayyafkcjllmnncxzfa0"))))
     (build-system gnu-build-system)
     (inputs
      (list gmp))
-    (native-inputs (list autoconf
-                         automake
-                         libtool
-                         texlive-amsfonts
-                         texlive-dvips-l3backend
-                         texlive-graphics
-                         texlive-latex-l3backend
-                         texlive-tiny))
+    (native-inputs
+     (list autoconf
+           automake
+           libtool
+           (texlive-updmap.cfg
+            (list texlive-amsfonts
+                  texlive-graphics
+                  texlive-l3backend
+                  texlive-l3backend))))
     (arguments
      (list #:configure-flags
-             #~(list (string-append "--docdir=" #$output
-                                    "/share/doc/" #$name "-" #$version))))
+           #~(list (string-append "--docdir=" #$output
+                                  "/share/doc/" #$name "-" #$version))))
     (home-page "https://www.inf.ethz.ch/personal/fukudak/cdd_home/index.html")
     (synopsis "Library for convex hulls and extreme rays of polyhedra")
     (description
@@ -1237,7 +1271,7 @@ in the terminal or with an external viewer.")
         (base32 "1kzmj4yyxvlxqzqbrw6sx6dnvhj1zzqnciyb8ryzy6mdrb3pj4lk"))))
     (build-system gnu-build-system)
     (native-inputs
-     (list pkg-config texlive-tiny))
+     (list pkg-config (texlive-updmap.cfg)))
     (inputs
      (list cairo gd lua pango readline))
     (arguments
@@ -1516,26 +1550,6 @@ extremely large and complex data collections.")
                                  "/src/hdf5-" version ".tar.bz2")))
        (sha256
         (base32 "14gih7kmjx4h3lc7pg4fwcl28hf1qqkf2x7rljpxqvzkjrqbxi00"))
-       (patches (search-patches "hdf5-config-date.patch"))))))
-
-(define-public hdf5-1.12
-  (package
-    (inherit hdf5-1.8)
-    (version "1.12.2")
-    (source
-     (origin
-       (method url-fetch)
-       (uri (list (string-append "https://support.hdfgroup.org/ftp/HDF5/releases/"
-                                 "hdf5-" (version-major+minor version)
-                                 "/hdf5-" version "/src/hdf5-"
-                                 version ".tar.bz2")
-                  (string-append "https://support.hdfgroup.org/ftp/HDF5/"
-                                 "current"
-                                 (apply string-append
-                                        (take (string-split version #\.) 2))
-                                 "/src/hdf5-" version ".tar.bz2")))
-       (sha256
-        (base32 "1zlawdzb0gsvcxif14fwr5ap2gk4b6j02wirr2hcx8hkcbivp20s"))
        (patches (search-patches "hdf5-config-date.patch"))))))
 
 (define-public hdf5-1.14
@@ -1947,7 +1961,7 @@ the resulting text.")
     ;; FIXME: Even though the fonts are available dvips complains:
     ;; "Font cmmi10 not found; characters will be left blank."
     (native-inputs
-     `(("texlive" ,texlive-tiny)
+     `(("texlive" ,(texlive-updmap.cfg))
        ("ghostscript" ,ghostscript)
        ("doxygen" ,doxygen)))
     (home-page "https://itpp.sourceforge.net")
@@ -2565,82 +2579,81 @@ fixed point (16.16) format.")
       (license license:expat))))
 
 (define-public libflame
-  (package
-    (name "libflame")
-    (version "5.2.0")
-    (outputs '("out" "static"))
-    (source
-      (origin
-        (method git-fetch)
-        (uri (git-reference
-               (url "https://github.com/flame/libflame")
-               (commit version)))
-        (file-name (git-file-name name version))
-        (sha256
-         (base32
-          "1n6lf0wvpp77lxqlr721h2jbfbzigphdp19wq8ajiccilcksh7ay"))))
-    (build-system gnu-build-system)
-    (arguments
-     `(#:configure-flags
-       ;; Sensible defaults: https://github.com/flame/libflame/issues/28
-       (list "--enable-dynamic-build"
-             "--enable-max-arg-list-hack"
-             "--enable-lapack2flame"
-             "--enable-verbose-make-output"
-             "--enable-multithreading=pthreads" ; Openblas isn't built with openmp.
-             ,@(if (any (cute string-prefix? <> (or (%current-target-system)
-                                                    (%current-system)))
-                        '("x86_64" "i686"))
-                 '("--enable-vector-intrinsics=sse")
-                 '())
-             "--enable-supermatrix"
-             "--enable-memory-alignment=16"
-             "--enable-ldim-alignment")
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'unpack 'patch-/usr/bin/env-bash
-           (lambda _
-             (substitute* "build/config.mk.in"
-               (("/usr/bin/env bash") (which "bash")))
-             #t))
-         (replace 'check
-           (lambda* (#:key tests? #:allow-other-keys)
-             (substitute* "test/Makefile"
-               (("LIBBLAS .*") "LIBBLAS = -lblas\n")
-               (("LIBLAPACK .*") "LIBLAPACK = -llapack\n"))
-             (if tests?
-               (with-directory-excursion "test"
-                 (mkdir "obj")
-                 (invoke "make")
-                 (invoke "./test_libflame.x"))
-               #t)))
-         (add-after 'install 'install-static
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let ((out (assoc-ref outputs "out"))
-                   (static (assoc-ref outputs "static")))
-               (mkdir-p (string-append static "/lib"))
-               (rename-file (string-append out "/lib/libflame.a")
-                            (string-append static "/lib/libflame.a"))
-               (install-file (string-append out "/include/FLAME.h")
-                             (string-append static "/include"))
-               #t))))))
-    (inputs
-     (list gfortran))
-    (native-inputs
-     `(("lapack" ,lapack)
-       ("openblas" ,openblas)
-       ("perl" ,perl)
-       ("python" ,python-wrapper)))
-    (home-page "https://github.com/flame/libflame")
-    (synopsis "High-performance object-based library for DLA computations")
-    (description "@code{libflame} is a portable library for dense matrix
+  ;; The latest release (5.2.0) dates back to 2019.  Use a newer one, which
+  ;; among other things provides extra LAPACK symbols, such as 'dgemlq_'
+  ;; (needed by LAPACKe).
+  (let ((commit "70c19e770ead0ae846c59b59216deb16d236b40c")
+        (revision "0"))
+    (package
+      (name "libflame")
+      (version (git-version "5.2.0" revision commit))
+      (outputs '("out" "static"))
+      (home-page "https://github.com/flame/libflame")
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference (url home-page) (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "0rk8ln5p4yybsws6p60w0vkxbqp53jddv90brlgf60mk6lv51sxl"))))
+      (build-system gnu-build-system)
+      (arguments
+       (list #:configure-flags
+             ;; Sensible defaults: https://github.com/flame/libflame/issues/28
+             #~(list "--enable-dynamic-build"
+                     "--enable-max-arg-list-hack"
+                     "--enable-lapack2flame"
+                     "--enable-verbose-make-output"
+                     "--enable-multithreading=pthreads" ; Openblas isn't built with openmp.
+                     #$@(if (target-x86?)
+                            #~("--enable-vector-intrinsics=sse")
+                            #~())
+                     "--enable-supermatrix"
+                     "--enable-memory-alignment=16"
+                     "--enable-ldim-alignment")
+             #:make-flags #~(list "FC=gfortran -fPIC")
+             #:phases
+             #~(modify-phases %standard-phases
+                 (add-after 'unpack 'patch-/usr/bin/env-bash
+                   (lambda _
+                     (substitute* "build/config.mk.in"
+                       (("/usr/bin/env bash")
+                        (which "bash")))))
+                 (replace 'check
+                   (lambda* (#:key tests? #:allow-other-keys)
+                     (substitute* "test/Makefile"
+                       (("LIBBLAS .*")
+                        "LIBBLAS = -lblas\n")
+                       (("LIBLAPACK .*")
+                        "LIBLAPACK = -llapack\n"))
+                     (when tests?
+                       (with-directory-excursion "test"
+                         (mkdir "obj")
+                         (invoke "make")
+                         (invoke "./test_libflame.x")))))
+                 (add-after 'install 'install-static
+                   (lambda* (#:key outputs #:allow-other-keys)
+                     (let ((out (assoc-ref outputs "out"))
+                           (static (assoc-ref outputs "static")))
+                       (mkdir-p (string-append static "/lib"))
+                       (rename-file (string-append out
+                                                   "/lib/libflame.a")
+                                    (string-append static
+                                                   "/lib/libflame.a"))
+                       (install-file (string-append out
+                                                    "/include/FLAME.h")
+                                     (string-append static "/include"))))))))
+      (inputs (list gfortran))
+      (native-inputs (list lapack perl python-wrapper))
+      (synopsis "High-performance library for @acronym{DLA, dense linear algebra} computations")
+      (description "@code{libflame} is a portable library for dense matrix
 computations, providing much of the functionality present in LAPACK, developed
 by current and former members of the @acronym{SHPC, Science of High-Performance
 Computing} group in the @url{https://www.ices.utexas.edu/, Institute for
 Computational Engineering and Sciences} at The University of Texas at Austin.
 @code{libflame} includes a compatibility layer, @code{lapack2flame}, which
 includes a complete LAPACK implementation.")
-    (license license:bsd-3)))
+      (license license:bsd-3))))
 
 (define-public scasp
   (let ((commit "89a427aa04ec6346425a40111c99b310901ffe51")
@@ -4689,6 +4702,7 @@ library.")
     (build-system gnu-build-system)
     (arguments
      (list
+      #:configure-flags #~'("--enable-cblas")
       #:modules
       '((guix build gnu-build-system)
         (guix build utils)
@@ -5777,49 +5791,44 @@ set.")
            python
            python-breathe
            python-sphinx
-           (texlive-updmap.cfg (list texlive-adjustbox
-                                     texlive-alphalph
-                                     texlive-amsfonts
-                                     texlive-bibtex
-                                     texlive-capt-of
-                                     texlive-caption
-                                     texlive-cm
-                                     texlive-courier
-                                     texlive-enumitem
-                                     texlive-etoolbox
-                                     texlive-fancyhdr
-                                     texlive-fancyvrb
-                                     texlive-helvetic
-                                     texlive-jknappen
-                                     texlive-sectsty
-                                     texlive-tex-gyre
-                                     texlive-wasy
-                                     texlive-xcolor
-                                     texlive-xypic
-                                     texlive-generic-listofitems
-                                     texlive-latex-cmap
-                                     texlive-latex-colortbl
-                                     texlive-latex-etoc
-                                     texlive-latex-float
-                                     texlive-latex-fncychap
-                                     texlive-latex-framed
-                                     texlive-latex-geometry
-                                     texlive-latex-hanging
-                                     texlive-hyperref
-                                     texlive-latex-multirow
-                                     texlive-latex-natbib
-                                     texlive-latex-needspace
-                                     texlive-latex-newunicodechar
-                                     texlive-latex-parskip
-                                     texlive-latex-stackengine
-                                     texlive-latex-tabulary
-                                     texlive-latex-tocloft
-                                     texlive-latex-upquote
-                                     texlive-latex-varwidth
-                                     texlive-titlesec
-                                     texlive-ulem
-                                     texlive-wasysym
-                                     texlive-wrapfig))))
+           (texlive-updmap.cfg
+            (list texlive-adjustbox
+                  texlive-alphalph
+                  texlive-capt-of
+                  texlive-caption
+                  texlive-cmap
+                  texlive-courier
+                  texlive-enumitem
+                  texlive-etoc
+                  texlive-etoolbox
+                  texlive-fancyvrb
+                  texlive-float
+                  texlive-fncychap
+                  texlive-framed
+                  texlive-hanging
+                  texlive-helvetic
+                  texlive-jknapltx
+                  texlive-latexmk
+                  texlive-listofitems
+                  texlive-multirow
+                  texlive-natbib
+                  texlive-needspace
+                  texlive-newunicodechar
+                  texlive-parskip
+                  texlive-sectsty
+                  texlive-stackengine
+                  texlive-tabulary
+                  texlive-tex-gyre
+                  texlive-titlesec
+                  texlive-tocloft
+                  texlive-ulem
+                  texlive-upquote
+                  texlive-varwidth
+                  texlive-wasy
+                  texlive-wasysym
+                  texlive-wrapfig
+                  texlive-xcolor
+                  texlive-xypic))))
     (inputs
      (list openblas lapack))
     (arguments
@@ -5907,7 +5916,7 @@ structured and unstructured grid problems.")))
 (define-public matio
   (package
     (name "matio")
-    (version "1.5.19")
+    (version "1.5.23")
     (source
      (origin
        (method url-fetch)
@@ -5915,7 +5924,7 @@ structured and unstructured grid problems.")))
                            "matio-" version ".tar.gz"))
        (sha256
         (base32
-         "0vr8c1mz1k6mz0sgh6n3scl5c3a71iqmy5fnydrgq504icj4vym4"))))
+         "0vjdkxn402gwrgbi5ii3n2ai01bjzzfb588iqd9ylinzc7kfm4cz"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -5926,7 +5935,7 @@ structured and unstructured grid problems.")))
               (install-file "src/matioConfig.h"
                             (string-append #$output "/include")))))))
     (inputs
-     (list zlib hdf5-1.8))
+     (list zlib hdf5))
     (home-page "http://matio.sourceforge.net/")
     (synopsis "Library for reading and writing MAT files")
     (description "Matio is a library for reading and writing MAT files.  It
@@ -5936,45 +5945,45 @@ supports compressed MAT files, as well as newer (version 7.3) MAT files.")
 (define-public vc
   (package
     (name "vc")
-    (version "1.4.2")
+    (version "1.4.3")
     (source
-      (origin (method url-fetch)
-              (uri (string-append "https://github.com/VcDevel/Vc/releases/"
-                                  "download/" version "/Vc-" version ".tar.gz"))
-              (sha256
-               (base32
-                "0lirdqzcxys9walz04bllsphydynk7973aimd5k1h1qbwi8z3lsh"))))
+     (origin
+       (method url-fetch)
+       (uri (string-append "https://github.com/VcDevel/Vc/releases/"
+                           "download/" version "/Vc-" version ".tar.gz"))
+       (sha256
+        (base32 "0zq37r8yisd4dwlb024l10wk2yq9kisa4xm79ia1ggrz7w2s13lq"))))
     (build-system cmake-build-system)
     (arguments
-     '(#:configure-flags
-       '("-DBUILD_TESTING=ON"
-         ;; By default, Vc will optimize for the CPU of the build machine.
-         ;; Setting this to "none" makes it create portable binaries.  See
-         ;; "cmake/OptimizeForArchitecture.cmake".
-         "-DTARGET_ARCHITECTURE=none")
-       #:phases (modify-phases %standard-phases
-                  (add-after 'unpack 'copy-testdata
-                    (lambda* (#:key inputs native-inputs #:allow-other-keys)
-                      (let ((testdata (assoc-ref (or native-inputs inputs)
-                                                 "testdata")))
-                        (copy-recursively testdata "tests/testdata")
-                        #t))))))
+     (list
+      #:configure-flags
+      #~(list "-DBUILD_TESTING=ON"
+              ;; By default, Vc will optimize for the CPU of the build machine.
+              ;; Setting this to "none" makes it create portable binaries.  See
+              ;; "cmake/OptimizeForArchitecture.cmake".
+              "-DTARGET_ARCHITECTURE=none")
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'copy-testdata
+            (lambda _
+              (copy-recursively #$(this-package-native-input "testdata")
+                                "tests/testdata"))))))
     (native-inputs
      `(("virtest" ,virtest)
 
        ;; This is a submodule in the git project, but not part of the
        ;; released sources.  See the git branch for the commit to take.
-       ("testdata" ,(let ((commit "9ada1f34d6a41f1b5553d6223f277eae72c039d3"))
-                      (origin
-                        (method git-fetch)
-                        (uri (git-reference
-                              (url "https://github.com/VcDevel/vc-testdata")
-                              (commit "9ada1f34d6a41f1b5553d6223f277eae72c039d3")))
-                        (file-name (git-file-name "vc-testdata"
-                                                  (string-take commit 7)))
-                        (sha256
-                         (base32
-                          "1hkhqib03qlcq412ym2dciynfxcdr2ygqhnplz4l1vissr1wnqn2")))))))
+       ("testdata"
+        ,(let ((commit "9ada1f34d6a41f1b5553d6223f277eae72c039d3"))
+           (origin
+             (method git-fetch)
+             (uri (git-reference
+                   (url "https://github.com/VcDevel/vc-testdata")
+                   (commit "9ada1f34d6a41f1b5553d6223f277eae72c039d3")))
+             (file-name (git-file-name "vc-testdata" (string-take commit 7)))
+             (sha256
+              (base32
+               "1hkhqib03qlcq412ym2dciynfxcdr2ygqhnplz4l1vissr1wnqn2")))))))
     (synopsis "SIMD vector classes for C++")
     (description "Vc provides portable, zero-overhead C++ types for explicitly
 data-parallel programming.  It is a library designed to ease explicit
@@ -6529,17 +6538,15 @@ reduction.")
 (define-public mcrl2
   (package
     (name "mcrl2")
-    (version "202206.0")
+    (version "202206.1")
     (source (origin
               (method url-fetch)
               (uri (string-append
                     "https://www.mcrl2.org/download/release/mcrl2-"
                     version ".tar.gz"))
-              (patches (search-patches "mcrl2-fix-1687.patch"
-                                       "mcrl2-fix-counterexample.patch"))
               (sha256
                (base32
-                "0alpck09pbvwk4axqmrvcjmsabsn20yayq5b3apq284n0hcbf01q"))))
+                "1rbfyw47bi31qla1sa4fd1npryb5kbdr0vijmdc2gg1zhpqfv0ia"))))
     (inputs
      (list boost glu mesa qtbase-5))
     (build-system cmake-build-system)
@@ -7792,7 +7799,7 @@ diagrams.")
 (define-public libpoly
   (package
    (name "libpoly")
-   (version "0.1.11")
+   (version "0.1.12")
    (source (origin
             (method git-fetch)
             (uri (git-reference
@@ -7801,7 +7808,7 @@ diagrams.")
             (file-name (git-file-name name version))
             (sha256
              (base32
-              "0qylmg30rklvg00a0h1b3pb52cj9ki98yd27cylihjhq2klh3dmy"))))
+              "1cgdj7mxjyq4r2n852nxqacml90jm9irbvv27an0fmg7q4v1p2kb"))))
    (build-system cmake-build-system)
    (arguments
     (list #:configure-flags #~(list "-DLIBPOLY_BUILD_PYTHON_API=off")))
@@ -8175,6 +8182,8 @@ of C, Java, or Ada programs.")
     (build-system ocaml-build-system)
     (arguments
      `(#:tests? #f; no test target in Makefile
+       #:configure-flags
+       (list "--enable-verbosemake")    ; to aid debugging
        #:phases
        (modify-phases %standard-phases
          (add-before 'configure 'export-shell
@@ -8428,15 +8437,15 @@ computation is supported via MPI.")
 (define-public scilab
   (package
     (name "scilab")
-    (version "5.5.0")
+    (version "5.5.2")
     (source
      (origin
        (method url-fetch)
        (uri
-        (string-append "https://oos.eu-west-2.outscale.com/scilab-releases/"
+        (string-append "https://www.scilab.org/download/"
                        version "/scilab-" version "-src.tar.gz"))
        (sha256
-        (base32 "1hx57aji5d78brwqcf8a34i1hasm3h4nw46xjg7cgxj09s8yz5kq"))))
+        (base32 "0phg9pn24yw98hbh475ik84dnikf1225b2knh7qbhdbdx6fm2d57"))))
     (build-system gnu-build-system)
     (native-inputs (list pkg-config gfortran))
     (inputs (list libxml2
@@ -8520,6 +8529,10 @@ computation is supported via MPI.")
                                   "__threadSignal InterpReady;" "\n"
                                   "__threadSignalLock InterpReadyLock;"
                                   "\n")))
+                ;; Fix CPP compilation errors.
+                (substitute* "modules/output_stream/src/cpp/diary_manager.cpp"
+                  (("if \\(array_size > 0\\)")
+                   "if (*array_size > 0)"))
                 ;; Set SCIHOME to /tmp before macros compilation.
                 (setenv "SCIHOME" "/tmp"))))))
     (home-page "https://scilab.org")

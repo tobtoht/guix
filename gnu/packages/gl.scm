@@ -15,7 +15,7 @@
 ;;; Copyright © 2020, 2021, 2022 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2020 Kei Kebreau <kkebreau@posteo.net>
 ;;; Copyright © 2021 Ivan Gankevich <i.gankevich@spbu.ru>
-;;; Copyright © 2021, 2022 John Kehayias <john.kehayias@protonmail.com>
+;;; Copyright © 2021, 2022, 2023 John Kehayias <john.kehayias@protonmail.com>
 ;;; Copyright © 2022 Petr Hodina <phodina@protonmail.com>
 ;;; Copyright © 2023 Kaelyn Takata <kaelyn.alexi@protonmail.com>
 ;;;
@@ -267,7 +267,7 @@ also known as DXTn or DXTC) for Mesa.")
 (define-public mesa
   (package
     (name "mesa")
-    (version "23.0.3")
+    (version "23.1.4")
     (source
       (origin
         (method url-fetch)
@@ -277,9 +277,8 @@ also known as DXTn or DXTC) for Mesa.")
                                   "mesa-" version ".tar.xz")))
         (sha256
          (base32
-          "1mcjf41x2bhxs6yxars7nh2vfryfw50g6rvbcfbb1wqdv2jn4qrq"))))
+          "0n89l7lvawh85hq2a7g5pp5v017s03qs3n4hbbff6rs8p5zs2qbj"))))
     (build-system meson-build-system)
-    (replacement mesa-vulkan-hasvk)
     (propagated-inputs
      ;; The following are in the Requires.private field of gl.pc.
      (list libdrm
@@ -299,7 +298,8 @@ also known as DXTn or DXTC) for Mesa.")
            libxvmc
            llvm-for-mesa
            wayland
-           wayland-protocols))
+           wayland-protocols
+           `(,zstd "lib")))
     (native-inputs
      (list bison
            flex
@@ -346,7 +346,7 @@ svga,swrast,virgl")))
          ;; Explicitly enable Vulkan on some architectures.
          #$@(match (%current-system)
              ((or "i686-linux" "x86_64-linux")
-              '("-Dvulkan-drivers=intel,amd"))
+              '("-Dvulkan-drivers=intel,intel_hasvk,amd,swrast"))
              ((or "powerpc64le-linux" "powerpc-linux")
               '("-Dvulkan-drivers=amd,swrast"))
              ("aarch64-linux"
@@ -362,6 +362,9 @@ svga,swrast,virgl")))
          ;; Enable the codecs that were built by default as part of the
          ;; 21.3.x releases to avoid functionality regressions.
          "-Dvideo-codecs=vc1dec,h264dec,h264enc,h265dec,h265enc"
+
+         ;; Enable ZSTD compression for shader cache.
+         "-Dzstd=enabled"
 
          ;; Also enable the tests.
          "-Dbuild-tests=true"
@@ -405,15 +408,11 @@ svga,swrast,virgl")))
                                    ;; This is probably a big-endian test failure.
                                    "src/gallium/targets/osmesa/meson.build")
                       (("if with_tests") "if not with_tests"))
-                    (substitute* "src/util/tests/format/meson.build"
-                      ;; This is definately an endian-ness test failure.
-                      (("'u_format_test', ") ""))
-                    ;; It is only this portion of the test which fails.
-                    (substitute* "src/mesa/main/tests/meson.build"
-                      ((".*mesa_formats.*") ""))
                     ;; This test times out and receives SIGTERM.
                     (substitute* "src/amd/common/meson.build"
-                      (("and not with_platform_windows") "and with_platform_windows"))))
+                      (("and not with_platform_windows") "and with_platform_windows"))
+                    (substitute* "src/compiler/nir/meson.build"
+                      ((".*loop_unroll_tests.*") ""))))
                  ("i686-linux"
                   ;; This test is known to fail on i686 (see:
                   ;; https://gitlab.freedesktop.org/mesa/mesa/-/issues/4091).
@@ -518,6 +517,7 @@ svga,swrast,virgl")))
      (list (search-path-specification
             ;; Ensure the Mesa VDPAU drivers can be found.
             (variable "VDPAU_DRIVER_PATH")
+            (separator #f)
             (files '("lib/vdpau")))))
     (home-page "https://mesa3d.org/")
     (synopsis "OpenGL and Vulkan implementations")
@@ -526,21 +526,6 @@ specifications - systems for rendering interactive 3D graphics.  A variety of
 device drivers allows Mesa to be used in many different environments ranging
 from software emulation to complete hardware acceleration for modern GPUs.")
     (license license:x11)))
-
-(define mesa-vulkan-hasvk
-  (let ((graft mesa)
-        (vulk "-Dvulkan-drivers=intel,amd"))
-    (package
-      (inherit graft)
-      (arguments
-        (substitute-keyword-arguments (package-arguments graft)
-          ((#:configure-flags flags)
-           #~(begin
-               (use-modules (ice-9 match))
-               (map (match-lambda
-                      (#$vulk (string-append #$vulk ",intel_hasvk,swrast"))
-                      (x x))
-                 #$flags))))))))
 
 (define-public mesa-opencl
   (package/inherit mesa

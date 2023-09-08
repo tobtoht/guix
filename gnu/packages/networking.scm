@@ -14,7 +14,7 @@
 ;;; Copyright © 2016, 2017 Pjotr Prins <pjotr.guix@thebird.nl>
 ;;; Copyright © 2017 Mathieu Othacehe <m.othacehe@gmail.com>
 ;;; Copyright © 2017, 2020, 2021 Leo Famulari <leo@famulari.name>
-;;; Copyright © 2017-2022 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2017-2023 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2017, 2018, 2019 Rutger Helling <rhelling@mykolab.com>
 ;;; Copyright © 2017, 2019 Gábor Boskovits <boskovits@gmail.com>
 ;;; Copyright © 2017 Thomas Danckaert <post@thomasdanckaert.be>
@@ -256,7 +256,7 @@ protocols.")
 (define-public lcrq
   (package
     (name "lcrq")
-    (version "0.0.1")
+    (version "0.1.2")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -265,7 +265,7 @@ protocols.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0jf7x3zcdbz5b99qz7liw4i90hn9s457zr82n0r8g9qsi81a1d8c"))))
+                "1m29p4bsafzbchnkidyrnglfdf1c9pnq6akkmivi23qdv9kj51dg"))))
     (build-system gnu-build-system)
     (arguments
      `(#:parallel-tests? #f
@@ -289,7 +289,7 @@ the RFC.")
 (define-public lcsync
   (package
     (name "lcsync")
-    (version "0.0.1")
+    (version "0.2.1")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -298,45 +298,33 @@ the RFC.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0s038b4xg9nlzhrganzjyfvc6n6cgd6kilnpik4axp62j2n5q11q"))))
+                "0bsd3dkir2i647nmrmyb7skbv16v0f6f3gfwkpxz8g42978dlms5"))))
     (build-system gnu-build-system)
     (arguments
      `(#:parallel-tests? #f
+       #:configure-flags
+       (list
+        (string-append "--prefix="
+                       (assoc-ref %outputs "out")))
        #:make-flags (let ((target ,(%current-target-system)))
                       (list ,(string-append "CC="
-                                            (cc-for-target))
-                            ;; avoid running setcap in the install process
-                            "SETCAP_PROGRAM=true"
-                            (string-append "prefix="
-                                           (assoc-ref %outputs "out"))))
+                                            (cc-for-target))))
        #:test-target "test"
        #:phases (modify-phases %standard-phases
-                  (delete 'configure) ;no configure script
-                  (add-before 'check 'remove-network-tests
+                  (add-after 'unpack 'use-prefix-from-configure-in-doc-makefile
+                    ;; Use prefix from configure. Fixed upstream:
+                    ;; https://codeberg.org/librecast/lcsync/commit/4ba00f6
+                    ;; XXX: Remove for 0.2.2+
                     (lambda _
-                      ;; these tests require networking
-                      (delete-file "./test/0000-0027.c")
-                      (delete-file "./test/0000-0049.c")
-                      (delete-file "./test/0000-0074.c")))
-                  (add-after 'unpack 'remove-immintrin.h
-                    (lambda* (#:key inputs #:allow-other-keys)
-                      (substitute* "Makefile"
-                        (("CFLAGS :=")
-                         (string-append "CFLAGS := -I" (search-input-directory
-                                                         inputs "include/simde"))))
-                      (substitute* (find-files "src")
-                        ((".*immintrin\\.h.*")
-                         (string-append "#include <simde-features.h>\n"
-                                        "#include <x86/ssse3.h>\n"))
-                        (("__m128i") "simde__m128i"))))
+                      (substitute* "doc/Makefile.in"
+                        (("PREFIX .= /usr/local") "PREFIX ?= @prefix@"))))
                   (add-before 'build 'add-library-paths
                     (lambda* (#:key inputs #:allow-other-keys)
                       (let* ((librecast (assoc-ref inputs "librecast")))
                         (substitute* (list "./src/Makefile" "./test/Makefile")
                           (("-llibrecast")
                            (string-append "-L" librecast "/lib -llibrecast")))))))))
-    (inputs (list librecast libsodium))
-    (native-inputs (list simde))
+    (inputs (list lcrq librecast libsodium))
     (home-page "https://librecast.net/lcsync.html")
     (synopsis "Librecast file and data syncing tool")
     (description
@@ -350,47 +338,45 @@ them in order to efficiently transfer a minimal amount of data.")
 (define-public libcamera
   (package
     (name "libcamera")
-    (version "0.0.0-1")
+    (version "0.1.0")
     (source
      (origin
        (method git-fetch)
        (uri
         (git-reference
-         (url "git://linuxtv.org/libcamera.git")
-         (commit "10be87fa7c3bfb097b21ca3d469c67e40c333f7e")))
+         (url "https://git.libcamera.org/libcamera/libcamera.git")
+         (commit (string-append "v" version))))
        (file-name
         (git-file-name name version))
        (sha256
-        (base32 "0qgirhlalmk9f9v6piwz50dr2asb64rvbb9zb1vix7y9zh7m11by"))))
+        (base32 "06dj3dpfbayj61015n5kffin2g3hyys11ra0px2g4hmrznvdkhc9"))))
     (build-system meson-build-system)
-    (outputs '("out" "doc"))
+    (outputs '("out" "doc" "gst" "tools"))
     (arguments
-     `(#:glib-or-gtk? #t     ; To wrap binaries and/or compile schemas
-       #:configure-flags
-       (list
-        "-Dv4l2=true"
-        ;; XXX: Requires bundled pybind11.
-        "-Dpycamera=disabled")
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'unpack 'disable-failing-tests
-           (lambda _
-             (substitute* "test/meson.build"
-               (("\\['list-cameras',                    'list-cameras.cpp'\\],")
-                "")
-               ;; TODO: Why do the gstreamer tests fail.
-               (("^subdir\\('gstreamer'\\)")
-                ""))))
-         (add-after 'install 'move-doc
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let* ((out (assoc-ref outputs "out"))
-                    (doc (assoc-ref outputs "doc")))
-               (mkdir-p (string-append doc "/share"))
-               (rename-file
-                (string-append out "/share/doc")
-                (string-append doc "/share/doc"))))))))
+     (list #:glib-or-gtk? #t ; To wrap binaries and/or compile schemas
+           #:configure-flags
+           #~(list (string-append "-Dbindir="
+                                  (assoc-ref %outputs "tools") "/bin")
+                   "-Dtest=true" "-Dv4l2=true"
+                   ;; XXX: Requires bundled pybind11.
+                   "-Dpycamera=disabled")
+           #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'install 'move-doc-and-gst
+                 (lambda* (#:key outputs #:allow-other-keys)
+                   (let* ((out (assoc-ref outputs "out"))
+                          (doc (assoc-ref outputs "doc"))
+                          (gst (assoc-ref outputs "gst")))
+                     (mkdir-p (string-append doc "/share"))
+                     (rename-file (string-append out "/share/doc")
+                                  (string-append doc "/share/doc"))
+                     (mkdir-p (string-append gst "/lib"))
+                     (rename-file
+                      (string-append out "/lib/gstreamer-1.0")
+                      (string-append gst "/lib/gstreamer-1.0"))))))))
     (native-inputs
-     (list graphviz                     ;for 'dot'
+     (list googletest
+           graphviz                     ;for 'dot'
            doxygen
            pkg-config
            python-wrapper
@@ -489,7 +475,7 @@ GLib-based library, libnice, as well as GStreamer elements to use it.")
 (define-public librecast
   (package
     (name "librecast")
-    (version "0.6.1")
+    (version "0.7.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -498,7 +484,7 @@ GLib-based library, libnice, as well as GStreamer elements to use it.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1kixnm7pn8345wp0klhnpw5x992cqbqx3bhc01j8xhqf6irlzdm3"))))
+                "0y0km0fv39m3i227pyg7fcr7d94gbji51fkcywqyrjgmk4j1hp1n"))))
     (build-system gnu-build-system)
     (arguments
      `(#:parallel-tests? #f
@@ -507,26 +493,7 @@ GLib-based library, libnice, as well as GStreamer elements to use it.")
                                             (cc-for-target))
                             (string-append "PREFIX="
                                            (assoc-ref %outputs "out"))))
-       #:test-target "test"
-       #:phases (modify-phases %standard-phases
-                  (add-before 'check 'remove-network-tests
-                    (lambda _
-                      ;; these tests require networking
-                      (delete-file "./test/0000-0010.c")
-                      (delete-file "./test/0000-0012.c")
-                      (delete-file "./test/0000-0013.c")
-                      (delete-file "./test/0000-0014.c")
-                      (delete-file "./test/0000-0015.c")
-                      (delete-file "./test/0000-0016.c")
-                      (delete-file "./test/0000-0018.c")
-                      (delete-file "./test/0000-0019.c")
-                      (delete-file "./test/0000-0021.c")
-                      (delete-file "./test/0000-0028.c")
-                      (delete-file "./test/0000-0036.c")
-                      (delete-file "./test/0000-0037.c")
-                      (delete-file "./test/0000-0038.c")
-                      (delete-file "./test/0000-0039.c")
-                      (delete-file "./test/0000-0040.c"))))))
+       #:test-target "test"))
     (inputs (list libsodium lcrq))
     (synopsis "IPv6 multicast library")
     (description "Librecast is a C library which supports IPv6 multicast
@@ -961,7 +928,7 @@ systems with no further dependencies.")
     (inputs
      (list bluez
            dbus
-           librsvg
+           (librsvg-for-system)
            glib
            gtk+
            iproute
@@ -1426,7 +1393,7 @@ files contain direct mappings of the abstractions provided by the ØMQ C API.")
 (define-public libnatpmp
   (package
     (name "libnatpmp")
-    (version "20150609")
+    (version "20230423")
     (source (origin
               (method url-fetch)
               (uri (string-append
@@ -1434,7 +1401,7 @@ files contain direct mappings of the abstractions provided by the ØMQ C API.")
                     name "-" version ".tar.gz"))
               (sha256
                (base32
-                "1c1n8n7mp0amsd6vkz32n8zj3vnsckv308bb7na0dg0r8969rap1"))))
+                "0w7wvf4yi8qv659dg9d3ndqvh3bqhgm21gd135spwhq6hhnfv106"))))
     (build-system gnu-build-system)
     (arguments
      `(#:phases
@@ -1507,6 +1474,26 @@ containing both Producer and Consumer support.")
                (base32
                 "0ay0n0d85254zdmv8znmn399gfiqpk6ga0jwdwa7ylpbw9pbdzw8"))))
     (build-system gnu-build-system)
+    (native-inputs
+     (if (%current-target-system)
+         (list pkg-config
+               libtool
+               gettext-minimal
+               autoconf automake)
+         '()))
+    (arguments
+     (if (%current-target-system)
+         (list #:phases
+               #~(modify-phases %standard-phases
+                   ;; AC_FUNC_MALLOC and AC_FUNC_REALLOC usually unneeded
+                   ;; see https://lists.gnu.org/archive/html/autoconf/2003-02/msg00017.html
+                   (add-after 'unpack 'fix-rpl_malloc
+                     (lambda _
+                       (substitute* "configure.ac"
+                         (("AC_FUNC_MALLOC") ""))
+                       ;; let bootstrap phase run.
+                       (delete-file "./configure")))))
+         '()))
     (home-page "https://libndp.org/")
     (synopsis "Library for Neighbor Discovery Protocol")
     (description
@@ -1710,7 +1697,7 @@ and up to 1 Mbit/s downstream.")
 (define-public whois
   (package
     (name "whois")
-    (version "5.5.11")
+    (version "5.5.17")
     (source
      (origin
        (method git-fetch)
@@ -1719,26 +1706,28 @@ and up to 1 Mbit/s downstream.")
               (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0wys0aixzq6mzvg7p6jb0d5rkkg23pjcgcsx86p7hjidxdvnbwzr"))))
+        (base32 "1mqgc8saz4l0hr4p8r9cgndwx3r9aal7ak9irgrrkxyjd65xpa9n"))))
     (build-system gnu-build-system)
     (arguments
-     `(#:tests? #f                      ; no test suite
-       #:make-flags (list (string-append "CC=" ,(cc-for-target))
-                          (string-append "PKG_CONFIG=" ,(pkg-config-for-target))
-                          (string-append "prefix=" (assoc-ref %outputs "out")))
-       #:phases
-       (modify-phases %standard-phases
-         (delete 'configure)            ; no configure script
-         (add-before 'build 'setenv
-           (lambda _
-             (setenv "HAVE_ICONV" "1")
-             #t)))))
+     (list
+      #:tests? #f                       ; no test suite
+      #:make-flags
+      #~(list (string-append "CC=" #$(cc-for-target))
+              (string-append "PKG_CONFIG=" #$(pkg-config-for-target))
+              (string-append "prefix=" #$output)
+              "BASHCOMPDIR=$(prefix)/share/bash-completion/completions")
+      #:phases
+      #~(modify-phases %standard-phases
+          (delete 'configure)           ; no configure script
+          (add-before 'build 'setenv
+            (lambda _
+              (setenv "HAVE_ICONV" "1"))))))
     (inputs
      (list libidn2))
     (native-inputs
-     `(("gettext" ,gettext-minimal)
-       ("perl" ,perl)
-       ("pkg-config" ,pkg-config)))
+     (list gettext-minimal
+           perl
+           pkg-config))
     (synopsis "Intelligent client for the WHOIS directory service")
     (description
       "whois searches for an object in a @dfn{WHOIS} (RFC 3912) database.
@@ -1755,14 +1744,14 @@ of the same name.")
 (define-public wireshark
   (package
     (name "wireshark")
-    (version "4.0.5")
+    (version "4.0.7")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://www.wireshark.org/download/src/wireshark-"
                            version ".tar.xz"))
        (sha256
-        (base32 "0abb36n3li5w22f435k31mvk0sy0f41sxz4fqrl4ksjzjd377dki"))))
+        (base32 "0xw7iagh37y02qgzgmb2xf1qagbphv5lpgra8lq3x0pzrc27p7x7"))))
     (build-system cmake-build-system)
     (arguments
      (list
@@ -2679,7 +2668,7 @@ that block port 22.")
 (define-public iperf
   (package
     (name "iperf")
-    (version "3.13")
+    (version "3.14")
     (source
      (origin
        (method git-fetch)
@@ -2688,7 +2677,7 @@ that block port 22.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "19i0lkr2i4iyy9hr5iwxnhb8pmjrqsbwbnzky6agy9yzgzrggfjv"))))
+        (base32 "0xy7q508yrraa8q3bxdsc2fwacc6qm7l6p44a07jp7ki8bwdcs8z"))))
     (build-system gnu-build-system)
     (arguments
      `(#:configure-flags
@@ -2973,42 +2962,38 @@ enabled due to license conflicts between the BSD advertising clause and the GPL.
 (define-public spiped
   (package
     (name "spiped")
-    (version "1.6.1")
+    (version "1.6.2")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://www.tarsnap.com/spiped/spiped-"
                                   version ".tgz"))
               (sha256
                (base32
-                "04rpnc53whfky7pp2m9h35gwzwn6788pnl6c1qd576mpknbqjw4d"))))
+                "0rs5403bp48wyy2x0f3hk0f75ds1qn03sgyli2c7y7fi29ynim05"))))
     (build-system gnu-build-system)
     (arguments
-     `(#:test-target "test"
-       #:make-flags (let* ((out (assoc-ref %outputs "out"))
-                           (bindir (string-append out "/bin"))
-                           (man1dir (string-append out "/share/man/man1")))
-                      (list ,(string-append "CC=" (cc-for-target)) ; It tries to invoke `c99`.
-                            (string-append "BINDIR=" bindir)
-                            (string-append "MAN1DIR=" man1dir)))
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'unpack 'patch-command-invocations
-           (lambda _
-             (substitute* '("Makefile"
-                            "libcperciva/cpusupport/Build/cpusupport.sh"
-                            "libcperciva/POSIX/posix-cflags.sh"
-                            "libcperciva/POSIX/posix-l.sh")
-               (("command -p") ""))
-             #t))
-         (delete 'configure) ; No ./configure script.
-         (add-after 'install 'install-more-docs
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let* ((out (assoc-ref %outputs "out"))
-                    (misc (string-append out "/share/doc/spiped")))
-               (install-file "DESIGN.md" misc)
-               #t))))))
+     (list
+      #:test-target "test"
+      #:make-flags
+      #~(list (string-append "CC=" #$(cc-for-target))
+              (string-append "BINDIR=" #$output "/bin")
+              (string-append "MAN1DIR=" #$output "/share/man/man1"))
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'patch-command-invocations
+            (lambda _
+              (substitute* '("Makefile"
+                             "libcperciva/cpusupport/Build/cpusupport.sh"
+                             "libcperciva/POSIX/posix-cflags.sh"
+                             "libcperciva/POSIX/posix-l.sh")
+                (("command -p") ""))))
+          (delete 'configure)           ; no ./configure script
+          (add-after 'install 'install-more-docs
+            (lambda _
+              (install-file "DESIGN.md"
+                            (string-append #$output "/share/doc/spiped")))))))
     (native-inputs
-     (list procps)) ; `ps` is used by the test suite.
+     (list procps))                     ; `ps` is used by the test suite
     (inputs
      (list openssl))
     (home-page "https://www.tarsnap.com/spiped.html")
@@ -3945,7 +3930,7 @@ powerful route filtering syntax and an easy-to-use configuration interface.")
 (define-public iwd
   (package
     (name "iwd")
-    (version "2.3")
+    (version "2.7")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -3954,7 +3939,7 @@ powerful route filtering syntax and an easy-to-use configuration interface.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1hp38rh6vpfxkx2f036719b0v9g9yj169l8fd9l9lncqpjbz73y4"))))
+                "0xn0db37x0nrvwlw0r4w6q3yk57ijqh9zxd15wf3qqvs01hqkk2j"))))
     (build-system gnu-build-system)
     (inputs
      (list dbus ell (package-source ell) readline))
@@ -4201,7 +4186,7 @@ network.  This must be enabled on the target host, usually in the BIOS.")
 (define-public traceroute
   (package
     (name "traceroute")
-    (version "2.1.0")
+    (version "2.1.2")
     (source
      (origin
        (method url-fetch)
@@ -4209,26 +4194,28 @@ network.  This must be enabled on the target host, usually in the BIOS.")
                            "traceroute-" version "/traceroute-"
                            version ".tar.gz"))
        (sha256
-        (base32 "1dh32vcfawkl1p9g4ral1p0camds4paqr8db1kaqxwyk6hmd4s9n"))))
+        (base32 "07svkglyizxirgcmv6d4ih59f3ds8pnyprvkrqcf5d3p567jcz2h"))))
     (build-system gnu-build-system)
     (arguments
-     `(#:tests? #f                      ;no test suite
-       #:make-flags
-       (list (string-append "LIBRARY_PATH="
-                            (assoc-ref %build-inputs "libc") "/lib")
-             (string-append "CFLAGS=-I"
-                            (assoc-ref %build-inputs "kernel-headers")
-                            "/include")
-             "LDFLAGS=-lm -L../libsupp"
-             (string-append "prefix=" (assoc-ref %outputs "out")))
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'unpack 'patch-make
-           (lambda _
-             (substitute* "default.rules"
-               ((" \\$\\(LIBDEPS\\)") "$(filter-out -l%,$(LIBDEPS))"))))
-         (delete 'bootstrap)            ;no configure.ac file
-         (delete 'configure))))         ;no configure script
+     (list
+      #:tests? #f                       ; no test suite
+      #:make-flags
+      #~(list (string-append "LIBRARY_PATH="
+                             (assoc-ref %build-inputs "libc") "/lib")
+              (string-append "CFLAGS=-I"
+                             (assoc-ref %build-inputs "kernel-headers")
+                             "/include")
+              "LDFLAGS=-lm -L../libsupp"
+              (string-append "prefix=" #$output))
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'patch-make
+            (lambda _
+              (substitute* "default.rules"
+                ((" \\$\\(LIBDEPS\\)")
+                 "$(filter-out -l%,$(LIBDEPS))"))))
+          (delete 'bootstrap)           ; no configure.ac file
+          (delete 'configure))))        ; no configure script
     (home-page "https://traceroute.sourceforge.net/")
     (synopsis "Tracks the route taken by packets over an IP network")
     (description "This package provides a modern, but Linux-specific
@@ -4391,7 +4378,7 @@ network.")
 (define-public yggdrasil
   (package
     (name "yggdrasil")
-    (version "0.4.3")
+    (version "0.4.7")
     (source
      (origin
        (method git-fetch)
@@ -4402,27 +4389,33 @@ network.")
          (recursive? #t)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0jp6998a45xi8pbi8p84chvpm1mhhcvcxm1avi1c1gjjp4jqm3vl"))
+        (base32 "01mllfrsr55lnfivxwa57cfrjas6w4shsvx9k81pw8jixc124myk"))
        (patches (search-patches "yggdrasil-extra-config.patch"))))
     (build-system go-build-system)
     (arguments
-     '(#:import-path "github.com/yggdrasil-network/yggdrasil-go"
-       ;; TODO: figure out how tests are run
-       #:tests? #f
-       #:install-source? #f
-       #:phases
-       (modify-phases %standard-phases
-         (replace 'build
-           (lambda* (#:key import-path build-flags #:allow-other-keys)
-             (for-each
-               (lambda (directory)
-                 ((assoc-ref %standard-phases 'build)
-                  #:build-flags build-flags
-                  #:import-path directory))
-               (list "github.com/yggdrasil-network/yggdrasil-go/cmd/yggdrasil"
-                     "github.com/yggdrasil-network/yggdrasil-go/cmd/yggdrasilctl"
-                     "github.com/yggdrasil-network/yggdrasil-go/cmd/genkeys"))
-             #t)))))
+     (list #:import-path "github.com/yggdrasil-network/yggdrasil-go"
+           ;; TODO: figure out how tests are run
+           #:tests? #f
+           #:install-source? #f
+           #:go go-1.20
+           #:phases
+           #~(modify-phases %standard-phases
+               (replace 'build
+                 (lambda* (#:key import-path build-flags #:allow-other-keys)
+                   (let* ((pkgsrc "github.com/yggdrasil-network/yggdrasil-go/src/version")
+                          (ldflags (format #f
+                                           "-X ~a.buildName=yggdrasil -X ~a.buildVersion=~a"
+                                           pkgsrc
+                                           pkgsrc
+                                           #$version)))
+                     (for-each
+                      (lambda (directory)
+                        ((assoc-ref %standard-phases 'build)
+                         #:build-flags `("-ldflags" ,ldflags)
+                         #:import-path directory))
+                      (list "github.com/yggdrasil-network/yggdrasil-go/cmd/yggdrasil"
+                            "github.com/yggdrasil-network/yggdrasil-go/cmd/yggdrasilctl"
+                            "github.com/yggdrasil-network/yggdrasil-go/cmd/genkeys"))))))))
     ;; https://github.com/kardianos/minwinsvc is windows only
     (propagated-inputs
      (list ;;("go-golang-zx2c4-com-wireguard-windows"
@@ -4432,11 +4425,14 @@ network.")
            go-golang-org-x-sys
            go-golang-org-x-net
            go-golang-org-x-crypto
+           go-golang-org-x-tools
            go-netns
            go-netlink
+           go-github-com-olekukonko-tablewriter
            go-github-com-mitchellh-mapstructure
            go-github-com-mattn-go-runewidth
            go-github-com-mattn-go-isatty
+           go-github-com-mattn-go-colorable
            go-github-com-kardianos-minwinsvc
            go-github-com-hjson-hjson-go
            go-github-com-hashicorp-go-syslog
@@ -4504,7 +4500,7 @@ on hub/switched networks.  It is based on @acronym{ARP} packets, it will send
 (define-public phantomsocks
   (package
     (name "phantomsocks")
-    (version "0.0.0-20230405135900-a54ae9f3611e")
+    (version "0.0.0-20230811053544-53b995bdab83")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -4513,7 +4509,7 @@ on hub/switched networks.  It is based on @acronym{ARP} packets, it will send
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1qgv8dcrsyzjzppvdk0n5kkyaypcjm1hcn9lb29ahvbhm70cpm6a"))))
+                "1jc9qldi4f9s6n4ggaphyilxjymrz95hwd060jhj260x2hkdywl9"))))
     (build-system go-build-system)
     (arguments
      (list #:install-source? #f
@@ -4521,13 +4517,12 @@ on hub/switched networks.  It is based on @acronym{ARP} packets, it will send
            #:build-flags #~'("-tags" #$(if (target-linux?)
                                            "rawsocket"
                                            "pcap"))))
-    (propagated-inputs
-     (list go-github-com-google-gopacket
-           go-github-com-macronut-go-tproxy))
     (inputs
-     (if (target-linux?)
-         '()
-         (list libpcap)))
+     (append (if (target-linux?)
+                 '()
+                 (list libpcap))
+             (list go-github-com-google-gopacket
+                   go-github-com-macronut-go-tproxy)))
     (home-page "https://github.com/macronut/phantomsocks")
     (synopsis "Internet censorship circumvention tool")
     (description
@@ -4616,6 +4611,42 @@ interface statistics provided by the kernel as information source.  This means
 that vnStat won't actually be sniffing any traffic and also ensures light use
 of system resources regardless of network traffic rate.")
    (license license:gpl2+)))
+
+(define-public dnstracer
+  (package
+    (name "dnstracer")
+    (version "1.10")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append "http://www.mavetju.org/download/"
+                                  name "-" version ".tar.bz2"))
+              (sha256
+               (base32
+                "089bmrjnmsga2n0r4xgw4bwbf41xdqsnmabjxhw8lngg2pns1kb4"))))
+    (build-system gnu-build-system)
+    (arguments
+     (list #:tests? #f                  ;no test suite
+           #:make-flags #~(list (string-append "PREFIX=" #$output)
+                                (string-append "CC=" #$(cc-for-target)))
+           #:phases #~(modify-phases %standard-phases
+                        (add-after 'unpack 'patch-makefile
+                          (lambda _
+                            (substitute* "Makefile"
+                              (("\\$\\{PREFIX}/man")
+                               "${PREFIX}/share/man")
+                              (("^install:.*" all)
+                               (string-append
+                                all
+                                "\tinstall -d ${BINPREFIX}\n"
+                                "\tinstall -d ${MANPREFIX}\n")))))
+                        (delete 'configure))))
+    (native-inputs (list perl))         ;for pod2man
+    (home-page "http://www.mavetju.org/unix/dnstracer.php")
+    (synopsis "Trace a chain of DNS servers to the source")
+    (description "@command{dnstracer} determines where a given Domain Name
+Server (DNS) gets its information from, and follows the chain of DNS servers
+back to the servers which know the data.")
+    (license license:bsd-2)))
 
 (define-public dropwatch
   (package

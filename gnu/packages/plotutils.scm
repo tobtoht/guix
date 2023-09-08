@@ -276,14 +276,14 @@ colors, styles, options and details.")
 (define-public asymptote
   (package
     (name "asymptote")
-    (version "2.85")
+    (version "2.86")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "mirror://sourceforge/asymptote/"
                            version "/asymptote-" version ".src.tgz"))
        (sha256
-        (base32 "11zcfnc80sbh10w53j4rwnmz0g5xj78b8i7hzfslgya15jv5j1ac"))
+        (base32 "07y9yg7kdkgmz024qzny8xhjw3c367kxfpwzv19cxcy7qcgsvsy4"))
        (modules '((guix build utils)))
        (snippet
         ;; Remove bundled RapidJSON.
@@ -307,25 +307,17 @@ colors, styles, options and details.")
            rapidjson
            texinfo                      ;for generating documentation
            (texlive-updmap.cfg
-            (list texlive-amsfonts
-                  texlive-dvips-l3backend
-                  texlive-epsf
+            (list texlive-epsf
                   texlive-etoolbox
-                  texlive-fonts-ec
+                  texlive-hypdoc
                   texlive-infwarerr
                   texlive-kvdefinekeys
-                  texlive-grfext
-                  texlive-hyperref
-                  texlive-latex-base
-                  texlive-latex-geometry
-                  texlive-graphics
                   texlive-kvoptions
-                  texlive-latex-media9
-                  texlive-oberdiek      ;for ifluatex
-                  texlive-latex-ocgx2
-                  texlive-latex-parskip
+                  texlive-media9
+                  texlive-ocgx2
+                  texlive-parskip
                   texlive-pdftexcmds
-                  texlive-tex-texinfo))))
+                  texlive-texinfo))))
     (inputs
      (list bash-minimal
            eigen

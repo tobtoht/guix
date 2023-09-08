@@ -47,13 +47,13 @@
 (define-public toot
   (package
     (name "toot")
-    (version "0.37.0")
+    (version "0.38.1")
     (source
       (origin
         (method url-fetch)
         (uri (pypi-uri "toot" version))
         (sha256
-         (base32 "0qx8hyb74r85dxf97k23w0f5rzkrs16mq7h3y37nwp6hl6gia0ci"))))
+         (base32 "1cn646jzys9vjaw20sxmgzc7zq5a5ma8vabvrw9zpa0yl9wm97my"))))
     (build-system python-build-system)
     (arguments
      '(#:phases
@@ -66,7 +66,10 @@
     (native-inputs
      (list python-psycopg2 python-pytest))
     (inputs
-     (list python-beautifulsoup4 python-requests python-urwid
+     (list python-beautifulsoup4
+           python-tomlkit
+           python-requests
+           python-urwid
            python-wcwidth))
     (home-page "https://github.com/ihabunek/toot/")
     (synopsis "Mastodon CLI client")
@@ -84,7 +87,7 @@ Features include:
 (define-public tuba
   (package
     (name "tuba")
-    (version "0.3.2")
+    (version "0.4.1")
     (source
      (origin
        (method git-fetch)
@@ -93,7 +96,7 @@ Features include:
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1xhyz6wi17g4m76lr6qc75q4xnnw7c3dh3d04dg8m5gzk6j0y89x"))))
+        (base32 "0v2ihp1dkp13jklp3kysv4blflhx3w0hwcyink4mb7hwsaqy0xnm"))))
     (build-system meson-build-system)
     (arguments
       (list

@@ -44,10 +44,8 @@
   #:use-module (gnu packages avahi)
   #:use-module (gnu packages base)
   #:use-module (gnu packages bash)
-  #:use-module (gnu packages build-tools) ;meson-next
   #:use-module (gnu packages boost)
   #:use-module (gnu packages cdrom)
-  #:use-module (gnu packages cmake) ;for MPD
   #:use-module (gnu packages cpp)
   #:use-module (gnu packages file-systems)
   #:use-module (gnu packages freedesktop) ;elogind
@@ -261,7 +259,7 @@ player daemon.")
 (define-public ncmpc
   (package
     (name "ncmpc")
-    (version "0.48")
+    (version "0.49")
     (source (origin
               (method url-fetch)
               (uri
@@ -270,7 +268,7 @@ player daemon.")
                               "/ncmpc-" version ".tar.xz"))
               (sha256
                (base32
-                "035rd64a70qiv334bgs9z2hqnvzldkwdvxay2hmdx5l0a5zd5cml"))))
+                "0afgcbqk4gqhc26wlw6vsnyv5gl5ciq0qyv4miicyswyvq7frfv5"))))
     (build-system meson-build-system)
     (inputs (list boost pcre libmpdclient ncurses))
     (native-inputs
@@ -615,7 +613,7 @@ mpdevil loads all tags and covers on demand.")
 (define-public mympd
   (package
     (name "mympd")
-    (version "10.3.3")
+    (version "11.0.5")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -624,13 +622,21 @@ mpdevil loads all tags and covers on demand.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1n8z3rscrw7k097q5z1d59mrryy7b8m0zdfhi767a1qpa121m8if"))))
+                "0b3skvam3kb14w2afzxl1pfvj4cfanr45nyv93zpxafmxgghxqcv"))))
     (build-system cmake-build-system)
     (arguments
      (list
       #:configure-flags
-      #~(list "-DMYMPD_STRIP_BINARY=OFF")  ; handled by 'strip phase
-      #:tests? #f)) ; no test target
+      #~(list "-DMYMPD_BUILD_TESTING=ON"
+              ;; Handled by 'strip' phase.
+              "-DMYMPD_STRIP_BINARY=OFF")
+      #:phases
+      #~(modify-phases %standard-phases
+          (replace 'check
+            (lambda* (#:key tests? #:allow-other-keys)
+              (when tests?
+                ;; The following test requires network connectivity.
+                (invoke "ctest" "--exclude-regex" "test_http_client")))))))
     (native-inputs (list jq perl pkg-config))
     (inputs (list flac libid3tag lua openssl pcre2))
     (home-page "https://jcorporation.github.io/")

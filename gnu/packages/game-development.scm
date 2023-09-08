@@ -65,6 +65,7 @@
   #:use-module (gnu packages autotools)
   #:use-module (gnu packages base)
   #:use-module (gnu packages bash)
+  #:use-module (gnu packages bison)
   #:use-module (gnu packages boost)
   #:use-module (gnu packages build-tools)
   #:use-module (gnu packages compression)
@@ -704,6 +705,60 @@ clone.")
 development of visual novels, written on top of Guile-SDL2.  It is still
 experimental.")
     (license license:lgpl3+)))
+
+(define-public scummc
+  (package
+    (name "scummc")
+    (version "0.2.1")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/AlbanBedel/scummc")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1yyq05kfmvgx5aa68kg1l5a4lpsky7hzxxcdvv2xbgf0jljdcl3k"))
+              (modules '((guix build utils)))
+              (snippet
+               #~(begin
+                   (substitute* "configure"
+                     (("\\|alpha" all)
+                      (string-append all "|arm|aarch64|powerpc64le")))
+                   (substitute* "examples/example.mak"
+                     (("scost.*\n$") "scost\n")
+                     (("bmp \\$\\(.*\n$") "bmp\n")
+                     (("/%.scc.*\n$") "/%.scc\n")
+                     (("voc \\$\\(.*\n$") "voc\n"))
+                   (substitute* "Makefile.target"
+                     (("distrib-data:.*\n") "distrib-data:\n")
+                     (("cp.*/bin" all)
+                      (string-append all " || true")))))))
+    (build-system gnu-build-system)
+    (arguments
+     (list #:test-target "test"
+           #:tests? #f ; The only tests verify that game checksums match
+           #:make-flags
+           #~(list "SHOW_WARNINGS=no")
+           #:phases
+           #~(modify-phases %standard-phases
+               (replace 'configure ; ScummC uses a non-standard configure
+                    (lambda* (#:key configure-flags #:allow-other-keys)
+                      (apply invoke  "./configure" configure-flags)))
+               (replace 'install ; install target is referred to as distrib
+                 (lambda _
+                   (invoke "make" "distrib"
+                           (string-append "DISTRIB=" #$output)))))))
+    (inputs
+     (list freetype gtk+-2 sdl))
+    (native-inputs
+     (list bison doxygen libxslt pkg-config))
+    (synopsis "SCUMM Compiler")
+    (description
+     "ScummC is a set of tools allowing to create SCUMM games from scratch.
+It is capable of creating games for SCUMM version 6 and partially version 7.")
+    (home-page "https://github.com/AlbanBedel/scummc")
+    (license license:gpl2+)))
 
 (define-public sfml
   (package
@@ -1458,7 +1513,7 @@ are only used to bootstrap it.")
             (lambda _
               (substitute* (list "launcher/game/gui7.rpy"
                                  "launcher/game/gui7/images.py")
-                ((", \"game\",") ","))
+                ((", \"game\", \"gui7\",") ", \"gui7\","))
               #t))
           (add-before 'build 'start-xserver
             (lambda* (#:key inputs native-inputs #:allow-other-keys)
@@ -1713,7 +1768,7 @@ robust and compatible with many systems and operating systems.")
 (define-public mygui
   (package
     (name "mygui")
-    (version "3.4.1")
+    (version "3.4.2")
     (source
      (origin
        (method git-fetch)
@@ -1722,8 +1777,7 @@ robust and compatible with many systems and operating systems.")
              (commit (string-append "MyGUI" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32
-         "1gyd4bzm6qqpqw6is065qs5c729gl6rp989bnkygha6q4s371vz6"))))
+        (base32 "0gkfahz118gpqa2906cjb3d4w8g13rv8v3ma7s0ml9l5cci785f8"))))
     (build-system cmake-build-system)
     (arguments
      '(#:tests? #f                      ; No test target
@@ -1770,7 +1824,10 @@ of use.")
     (inputs
      (modify-inputs (package-inputs mygui)
        (delete "ogre")
-       (prepend mesa glu)))
+       (prepend glu
+                libglvnd                ; for find_package(… GLX)
+                mesa                    ; for find_package(… OpenGL …)
+                (sdl-union (list sdl2 sdl2-image)))))
     (synopsis "Fast, flexible and simple GUI (OpenGL backend)")))
 
 (define-public openmw
@@ -1990,7 +2047,7 @@ scripted in a Python-like language.")
 (define-public godot
   (package
     (name "godot")
-    (version "4.1")
+    (version "4.1.1")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -1999,7 +2056,7 @@ scripted in a Python-like language.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0rc34w4nb1qwmxk7ijcm689kk4gdxrmgzbj4qqz8gkqhysn8mnmz"))
+                "1byy4zdsj8nq54rhmij7kl0mdh4zv3c056y6c7rjy17bqjq2n8fh"))
               (modules '((guix build utils)
                          (ice-9 ftw)
                          (srfi srfi-1)))
@@ -2015,10 +2072,6 @@ scripted in a Python-like language.")
                               "assimp"
                               "astcenc"
                               "basis_universal"
-                              ;; TODO: Can unbundle once
-                              ;; <https://github.com/godotengine/godot/pull/79101>
-                              ;; is merged
-                              "brotli"
                               ;; Godot needs ca-certificates.crt, but that is
                               ;; not available in build environment
                               "certs"
@@ -2065,6 +2118,7 @@ scripted in a Python-like language.")
                         "use_volk=no"
                         ;; Avoid using many of the bundled libs.
                         ;; Note: These options can be found in the SConstruct file.
+                        "builtin_brotli=no"
                         "builtin_embree=no"
                         "builtin_enet=no"
                         "builtin_freetype=no"
@@ -2191,6 +2245,7 @@ scripted in a Python-like language.")
      (list pkg-config))
     (inputs
      (list alsa-lib
+           brotli
            dbus
            embree
            enet
@@ -2663,14 +2718,14 @@ a.k.a. XenoCollide) as described in Game Programming Gems 7.")
 (define-public ode
   (package
     (name "ode")
-    (version "0.16.3")
+    (version "0.16.4")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://bitbucket.org/odedevs/ode/downloads/"
                            "ode-" version ".tar.gz"))
        (sha256
-        (base32 "04y40czkh71m1p2r8ddfn5bajvlh7yyfa928jvi8qipwkgsdnhf7"))
+        (base32 "0rrl4pn4h3g0ay0i3n61pr6bwyk9vgar17vjal56pj66h617n0vi"))
        (modules '((guix build utils)))
        (snippet
         '(begin

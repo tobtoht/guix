@@ -1432,6 +1432,7 @@ language bindings to VIGRA.")
   (package
     (name "libwebp")
     (version "1.2.4")
+    (replacement libwebp/fixed)
     (source
      (origin
        ;; No tarballs are provided for >0.6.1.
@@ -1469,6 +1470,22 @@ with lossy compression and typically provides 3x smaller file sizes compared
 to PNG when lossy compression is acceptable for the red/green/blue color
 channels.")
     (license license:bsd-3)))
+
+(define libwebp/fixed
+  (package
+    (inherit libwebp)
+    (name "libwebp")
+    (version "1.3.1")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://chromium.googlesource.com/webm/libwebp")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32
+         "1aas6gwy7kfcq34cil781kcsl286khh9grwcx7k4d2n1g7zcpl3m"))))))
 
 (define-public libmng
   (package
@@ -2046,14 +2063,14 @@ stdout.")
 (define-public gifsicle
   (package
    (name "gifsicle")
-   (version "1.93")
+   (version "1.94")
    (source
      (origin
        (method url-fetch)
        (uri (string-append "https://www.lcdf.org/gifsicle/gifsicle-"
                            version ".tar.gz"))
        (sha256
-        (base32 "0irljjm76anicsm5rfkpqxd6x105aa8f0sky13dc3x1bfdwp1xlj"))))
+        (base32 "16zq5wd6fyjgy0p0mak15k3mh1zpqb9rg6gqfpg215kqq02p1jab"))))
    (build-system gnu-build-system)
    (arguments
     '(#:phases
@@ -2066,8 +2083,7 @@ stdout.")
               (("/bin/sh")
                (which "sh"))
               (("/bin/rm")
-               (which "rm")))
-            #t)))))
+               (which "rm"))))))))
    (native-inputs (list perl))    ; only for tests
    (inputs (list libx11))
    (home-page "https://www.lcdf.org/gifsicle/")
@@ -2572,7 +2588,7 @@ GIF, TIFF, WEBP, BMP, PNG, XPM formats.")
        ("gettext" ,gettext-minimal)))
     (inputs
      (list gtk+
-           librsvg
+           (librsvg-for-system)
            hicolor-icon-theme
            libmypaint
            mypaint-brushes

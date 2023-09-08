@@ -55,11 +55,12 @@
 ;;; Copyright © 2022 ( <paren@disroot.org>
 ;;; Copyright © 2022, 2023 Matthew James Kraai <kraai@ftbfs.org>
 ;;; Copyright © 2022 jgart <jgart@dismail.de>
-;;; Copyright © 2023 Juliana Sims <jtsims@protonmail.com>
+;;; Copyright © 2023 Juliana Sims <juli@incana.org>
 ;;; Copyright © 2023 Lu Hui <luhux76@gmail.com>
 ;;; Copyright © 2023 Yovan Naumovski <yovan@gorski.stream>
 ;;; Copyright © 2023 Alexey Abramov <levenson@mmer.org>
 ;;; Copyright © 2023 Bruno Victal <mirai@makinata.eu>
+;;; Copyright © 2023 Tobias Kortkamp <tobias.kortkamp@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -97,7 +98,9 @@
   #:use-module (guix packages)
   #:use-module (guix utils)
   #:use-module (gnu packages)
+  #:use-module (gnu packages acl)
   #:use-module (gnu packages algebra)
+  #:use-module (gnu packages attr)
   #:use-module (gnu packages autogen)
   #:use-module (gnu packages autotools)
   #:use-module (gnu packages base)
@@ -174,6 +177,7 @@
   #:use-module (gnu packages tcl)
   #:use-module (gnu packages terminals)
   #:use-module (gnu packages texinfo)
+  #:use-module (gnu packages textutils)
   #:use-module (gnu packages time)
   #:use-module (gnu packages tls)
   #:use-module (gnu packages version-control)
@@ -1960,7 +1964,7 @@ system administrator.")
 (define-public sudo
   (package
     (name "sudo")
-    (version "1.9.14p1")
+    (version "1.9.14p3")
     (source (origin
               (method url-fetch)
               (uri
@@ -1970,7 +1974,7 @@ system administrator.")
                                     version ".tar.gz")))
               (sha256
                (base32
-                "1bwg2bn1sbc6l2gx2r9vfqyf8dyvgp7nad0wj3p5gn095vpza6z9"))
+                "0qibg30d30gy85g83fj6gsg59g1sj3i9mkfl0k0851dwqjqii0x0"))
               (modules '((guix build utils)))
               (snippet
                '(begin
@@ -2419,15 +2423,15 @@ module slots, and the list of I/O ports (e.g. serial, parallel, USB).")
 (define-public acpica
   (package
     (name "acpica")
-    (version "20220331")
+    (version "20230628")
     (source (origin
               (method url-fetch)
               (uri (string-append
-                    "https://acpica.org/sites/acpica/files/acpica-unix2-"
+                    "https://downloadmirror.intel.com/783536/acpica-unix2-"
                     version ".tar.gz"))
               (sha256
                (base32
-                "0yjcl00nnnlw01sz6a1i5d3v75gr17mkbxkxfx2v344al33abk8w"))))
+                "1fmkng72zb0yqp4hfl8a6pqmylixqbpjd43xmi6k3p74x5qiq0h6"))))
     (build-system gnu-build-system)
     (native-inputs (list flex bison))
     (arguments
@@ -2980,7 +2984,7 @@ modules and plugins that extend Ansible.")
     (inputs
      (list ansible
            encfs
-           fuse
+           fuse-2
            util-linux ;; for umount
            findutils
            gnupg
@@ -3975,7 +3979,7 @@ you are running, what theme or icon set you are using, etc.")
 (define-public hyfetch
   (package
     (name "hyfetch")
-    (version "1.4.8")
+    (version "1.4.10")
     (source
      (origin
        (method git-fetch)
@@ -3985,7 +3989,7 @@ you are running, what theme or icon set you are using, etc.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "127nwgxcq0fs9wavs0sqv8zqdz7yfahw1nr9pgb6z5yjnc5cdcx3"))))
+         "1lf1vrasinda9j6yazznpx54gg5j24xvkjb68dxhby9dg8ql1h87"))))
     (build-system python-build-system)
     (arguments (list #:tests? #f))      ;no tests
     (inputs (list python-typing-extensions))
@@ -4023,12 +4027,23 @@ you are running, what theme or icon set you are using, etc.")
       #:phases
       #~(modify-phases %standard-phases
           (delete 'configure)
-          (add-before 'build 'path-source-paths
+          (add-before 'build 'patch-source-paths
             (lambda _
+              (substitute* "fetch.c"
+                (("grep")
+                 #$(file-append grep "/bin/grep"))
+                (("awk")
+                 #$(file-append gawk "/bin/awk")))
               (substitute* "uwufetch.c"
                 (("(/usr(/local)?)(.*;)" all _ _ rest)
-                 (string-append #$output rest))))))))
+                 (string-append #$output rest)))))
+          ;; TODO this will be fixed in the next release of uwufetch
+          (add-before 'install 'make-include-dir
+            (lambda _
+              (mkdir-p (string-append #$output "/include")))))))
     (inputs (list lshw
+                  gawk
+                  grep
                   ;; viu XXX not yet packaged in Guix
                   xwininfo))
     (home-page "https://github.com/TheDarkBug/uwufetch")
@@ -4260,6 +4275,28 @@ on systems running the Linux kernel.")
     ;; arm and aarch64 don't have cpuid.h.
     (supported-systems '("i686-linux" "x86_64-linux"))
     (license license:gpl2)))
+
+(define-public tcptrack
+  (package
+    (name "tcptrack")
+    (version "1.4.3")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/bchretien/tcptrack")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "08lh3l67wn4kq9q0nfspc7rj0jvp9dzwjgxpvqliwcif8cy5mi45"))))
+    (build-system gnu-build-system)
+    (inputs (list libpcap ncurses))
+    (synopsis "TCP connections sniffer")
+    (description
+     "Tcptrack is a sniffer which displays information about TCP connections
+it sees on a network interface.  This is a fork of Steve Benson’s tcptrack.")
+    (home-page "https://github.com/bchretien/tcptrack")
+    (license license:lgpl2.1+)))
 
 (define-public masscan
   (package
@@ -4652,7 +4689,7 @@ Logitech Unifying Receiver.")
   (package
     (name "lynis")
     ;; Also update the ‘lynis-sdk’ input to the commit matching this release.
-    (version "3.0.8")
+    (version "3.0.9")
     (source
      (origin
        (method git-fetch)
@@ -4661,7 +4698,7 @@ Logitech Unifying Receiver.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "19kz1ffbbd431cdfw7fjcl5hjkks3gfkwk3w2zkwsxgyiky1gx3w"))
+        (base32 "1rgiifbzlk9lfjhbgxy6pqza5kxpr5rsr8vj9fcqvqihzdb5izj1"))
        (modules '((guix build utils)))
        (snippet
         '(begin
@@ -4677,50 +4714,53 @@ Logitech Unifying Receiver.")
            (method git-fetch)
            (uri (git-reference
                  (url "https://github.com/CISOfy/lynis-sdk")
-                 (commit "dffe5d352e4d6029ea95a84d50604ccd97cb8999")))
+                 (commit "92522b3ec39ad4cdef4756dc303d99741ec7fe20")))
            (file-name (git-file-name "lynis-sdk" version))
            (sha256
             (base32 "05qq4395x8f0kyl1ppm74npsf8sb3hhgz0ck4fya91sy6a26b4ja"))))))
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (replace 'unpack
-           ;; XXX Remove after fixing <https://issues.guix.gnu.org/55287>.
-           (lambda* (#:key source #:allow-other-keys)
-             (mkdir "source")
-             (chdir "source")
-             (copy-recursively source "."
-                               #:keep-mtime? #t)))
-         (replace 'configure
-           (lambda* (#:key inputs outputs #:allow-other-keys)
-             (substitute* "lynis"
-               (("/usr/share/lynis")
-                (string-append (assoc-ref outputs "out") "/share/lynis")))
-             (substitute* "include/functions"
-               (("/usr/local/etc/lynis")
-                (string-append (assoc-ref outputs "out") "/etc/lynis")))))
-         (delete 'build)
-         (replace 'install
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let ((out (assoc-ref outputs "out")))
-               (install-file "lynis" (string-append out "/bin/"))
-               (install-file "default.prf" (string-append out "/etc/lynis"))
-               (for-each
-                (lambda (dir)
-                  (copy-recursively dir (string-append out "/share/lynis/" dir)))
-                (list "db" "include" "plugins"))
-               (install-file "lynis.8" (string-append out "/share/man/man8")))))
-         (replace 'check
-           (lambda* (#:key inputs #:allow-other-keys)
-             (copy-recursively (assoc-ref inputs "lynis-sdk") "../lynis-sdk")
-             (setenv "LANG" "en_US.UTF-8")
-             (let ((lynis-dir (getcwd)))
-               (with-directory-excursion "../lynis-sdk"
-                 (substitute* "config"
-                   (("\\.\\./lynis") lynis-dir))
-                 (substitute* "unit-tests/tests-language-translations.sh"
-                   (("\\.\\./lynis") lynis-dir))
-                 (invoke "sh" "lynis-devkit" "run" "unit-tests"))))))))
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (replace 'unpack
+            ;; XXX Remove after fixing <https://issues.guix.gnu.org/55287>.
+            (lambda* (#:key source #:allow-other-keys)
+              (mkdir "source")
+              (chdir "source")
+              (copy-recursively source "."
+                                #:keep-mtime? #t)))
+          (replace 'configure
+            (lambda _
+              (substitute* "lynis"
+                (("/usr/share/lynis")
+                 (string-append #$output "/share/lynis")))
+              (substitute* "include/functions"
+                (("/usr/local/etc/lynis")
+                 (string-append #$output "/etc/lynis")))))
+          (delete 'build)
+          (replace 'install
+            (lambda _
+              (install-file "lynis" (string-append #$output "/bin/"))
+              (install-file "default.prf" (string-append #$output "/etc/lynis"))
+              (for-each
+               (lambda (dir)
+                 (copy-recursively
+                  dir (string-append #$output "/share/lynis/" dir)))
+               (list "db" "include" "plugins"))
+              (install-file "lynis.8"
+                            (string-append #$output "/share/man/man8"))))
+          (replace 'check
+            (lambda _
+              (copy-recursively #$(this-package-native-input "lynis-sdk")
+                                "../lynis-sdk")
+              (setenv "LANG" "en_US.UTF-8")
+              (let ((lynis-dir (getcwd)))
+                (with-directory-excursion "../lynis-sdk"
+                  (substitute* "config"
+                    (("\\.\\./lynis") lynis-dir))
+                  (substitute* "unit-tests/tests-language-translations.sh"
+                    (("\\.\\./lynis") lynis-dir))
+                  (invoke "sh" "lynis-devkit" "run" "unit-tests"))))))))
     (home-page "https://cisofy.com/lynis/")
     (synopsis "Security auditing tool")
     (description "Lynis is a security auditing tool.  It performs an in-depth
@@ -4828,7 +4868,7 @@ LUKS volumes encrypted with the user's log-in password.")
 (define-public jc
   (package
     (name "jc")
-    (version "1.23.3")
+    (version "1.23.4")
     (source
      (origin
        ;; The PyPI tarball lacks the test suite.
@@ -4838,7 +4878,7 @@ LUKS volumes encrypted with the user's log-in password.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "02rylrh2dr593xf2l865lvvxnsb9337nd4fiqbahfyz4cbqgzq3x"))))
+        (base32 "07ic7pd9684k59f6zycn20903q31jdacqqjymrbr5zqj4qv8whkp"))))
     (build-system pyproject-build-system)
     (arguments
      (list #:phases
@@ -5900,3 +5940,39 @@ Discover other RouterOS devices or @command{mactelnetd} hosts.
            ;; Note: applies to src/md5.{c,h}
            ;; This file is likely to be gone in the next release.
            license:zlib))))
+
+(define-public bfs
+  (package
+    (name "bfs")
+    (version "3.0.1")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/tavianator/bfs")
+                    (commit version)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1ffma9p82bl0ai4h439cnhvcyyy8x593m27xlf16gsg6knpldm58"))))
+    (build-system gnu-build-system)
+    (arguments
+     (list #:make-flags #~(list (string-append "CC="
+                                               #$(cc-for-target))
+                                (string-append "PREFIX="
+                                               #$output) "bfs")
+           #:phases #~(modify-phases %standard-phases
+                        (delete 'configure)
+                        (add-before 'check 'disable-exec-no-path-test
+                          (lambda _
+                            ;; This test unsets PATH. It then probably cannot find
+                            ;; echo since it's not inside _PATH_STDPATH (?). We
+                            ;; delete the test to disable it.
+                            (delete-file "tests/posix/exec_nopath.sh"))))))
+    (inputs (list acl attr libcap oniguruma))
+    (synopsis "Breadth-first search for your files")
+    (description
+     "Bfs is a variant of the UNIX @command{find} command that operates
+breadth-first rather than depth-first.  It is otherwise compatible with many
+versions of command{find}, including POSIX, GNU, and *BSD find.")
+    (home-page "https://tavianator.com/projects/bfs.html")
+    (license license:bsd-0)))

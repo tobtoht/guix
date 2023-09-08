@@ -32,6 +32,7 @@
 ;;; Copyright © 2022, 2023 David Elsing <david.elsing@posteo.net>
 ;;; Copyright © 2022, 2023 Zheng Junjie <873216071@qq.com>
 ;;; Copyright © 2022 Maxim Cournoyer <maxim.cournoyer@gmail.com>
+;;; Copyright © 2022 Antero Mejr <antero@mailbox.org>
 ;;; Copyright © 2023 Sughosha <Sughosha@proton.me>
 ;;; Copyright © 2023 Artyom V. Poptsov <poptsov.artyom@gmail.com>
 ;;; Copyright © 2023 Liliana Marie Prikler <liliana.prikler@gmail.com>
@@ -451,7 +452,7 @@ operating on batches.")
 (define-public google-highway
   (package
     (name "google-highway")
-    (version "1.0.3")
+    (version "1.0.5")
     (source
      (origin
        (method git-fetch)
@@ -460,7 +461,7 @@ operating on batches.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1828rz9w9sr3zlyg25b6nm7j5j5m0xnic7hy36gpsbxvq358ibpf"))))
+        (base32 "01ig4iqicm57nycl9q8mx1b22gvl4wj5j1vfp1jczhmrga4bca8v"))))
     (build-system cmake-build-system)
     (arguments
      `(#:configure-flags (list "-DHWY_SYSTEM_GTEST=on")))
@@ -509,8 +510,17 @@ library for SIMD (Single Instruction, Multiple Data) with runtime dispatch.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0i1c88rn1wwz8nf3dpapcdkk4w623m3nksfy5yjai10k9irkzy3c"))))
+        (base32 "0i1c88rn1wwz8nf3dpapcdkk4w623m3nksfy5yjai10k9irkzy3c"))
+       (modules '((guix build utils)))
+       ;; It's bundled catch2 fails to build.
+       (snippet '(begin
+                   (delete-file "unittests/catch.hpp")
+                   (substitute* "unittests/compiled_tests.cpp"
+                     (("catch[.]hpp") "catch2/catch.hpp"))
+                   (substitute* "unittests/type_info_test.cpp"
+                     (("catch[.]hpp") "catch2/catch.hpp"))))))
     (build-system cmake-build-system)
+    (inputs (list catch2))
     (home-page "https://chaiscript.com/")
     (synopsis "Embedded scripting language designed for C++")
     (description
@@ -783,7 +793,7 @@ lock-free fixed size queue written in C++11.")
 (define-public gperftools
   (package
     (name "gperftools")
-    (version "2.10")
+    (version "2.11")
     (source
      (origin
        (method git-fetch)
@@ -791,7 +801,7 @@ lock-free fixed size queue written in C++11.")
              (url "https://github.com/gperftools/gperftools")
              (commit (string-append "gperftools-" version))))
        (sha256
-        (base32 "0s9qhx940s8q6glc8sw74k5gs8hdhjfigq20zci92qawgm7zsicm"))
+        (base32 "1mwsa4y696m8zjya0k7xzr9vsgb24dq4aq13m21hb5ygy7nh47id"))
        (file-name (git-file-name name version))))
     (build-system gnu-build-system)
     (arguments
@@ -1722,6 +1732,30 @@ C.  It focuses on standardization and parsing exactness and is at ease with
 almost every type of file containing key/value pairs.")
     (license license:gpl3+)))
 
+(define-public libcppgenerate
+  ;; dbus-cxx requires an unreleased fix.
+  (let ((commit "930c5503f76c877b72b9ff8546353d6f422bd010")
+        (revision "0"))
+    (package
+      (name "libcppgenerate")
+      (version (git-version "0.2" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/rm5248/libcppgenerate")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "0csdg9b406i85aqgivjmvqjdnqbyiyjh3s0xsfsxppv7wlh7j85r"))))
+      (build-system cmake-build-system)
+      (arguments (list #:configure-flags #~'("-DENABLE_TESTS=ON")))
+      (home-page "https://github.com/rm5248/libcppgenerate")
+      (synopsis "C++ code generator library for C++")
+      (description "@code{libcppgenerate} is a library for generating C++ code
+from C++.")
+      (license license:asl2.0))))
+
 (define-public libcutl
   (package
     (name "libcutl")
@@ -1949,6 +1983,16 @@ of reading and writing XML.")
 syntax with variables, conditions, functions and more.")
     (license license:asl2.0)))
 
+(define-public python-jsonnet
+  (package
+    (inherit jsonnet)
+    (name "python-jsonnet")
+    (build-system python-build-system)
+    (arguments '())
+    (synopsis "Python bindings for Jsonnet, the data templating language")
+    (description "This package provides a Python library named @code{_jsonnet}
+which can evaluate Jsonnet files and expressions.")))
+
 (define-public simdjson
   (package
     (name "simdjson")
@@ -1976,11 +2020,11 @@ validation.")
     (license license:asl2.0)))
 
 (define-public bloomberg-bde-tools
-  (let ((commit "094885bd177e0159232d4e6a060a04edb1edd786"))
+  (let ((commit "f63dfe9114cd7df29623bd01f644b9f654253972"))
     (package
       (name "bloomberg-bde-tools")
       ;; Recent releases are not tagged so commit must be used for checkout.
-      (version "3.97.0.0")
+      (version "3.118.0.0")
       (source (origin
                 (method git-fetch)
                 (uri (git-reference
@@ -1989,7 +2033,7 @@ validation.")
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "0mbbai73z8amh23ah3wy35kmy612380yr5wg89mic60qwqmpqb02"))
+                  "1a5sw4xjwd222na3zkflm2gkmzhnfq17i8qapyaxszpiayf3hw6v"))
                 (patches
                  (search-patches
                   "bloomberg-bde-tools-fix-install-path.patch"))))
@@ -2003,11 +2047,11 @@ validation.")
       (license license:asl2.0))))
 
 (define-public bloomberg-bde
-  (let ((commit "b6bcc0e24a5862bf77aea7edd831dedf50e21d64"))
+  (let ((commit "77a0f39d538c20ae28bece9a81cac99a9e1df95d"))
     (package
       (name "bloomberg-bde")
       ;; Recent releases are not tagged so commit must be used for checkout.
-      (version "3.98.0.0")
+      (version "3.118.0.1")
       (source (origin
                 (method git-fetch)
                 (uri (git-reference
@@ -2016,7 +2060,7 @@ validation.")
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "0y3lipi1lj9qazgc935851r2qsx5aq3vvc4y52jq57riyz8wg3ma"))
+                  "0nw5clkc9yipd03kijh4c8lxi9zkxfxcjhszl1xzwvgz8xmpampf"))
                 (patches
                  (search-patches
                   "bloomberg-bde-cmake-module-path.patch"))
@@ -2033,26 +2077,28 @@ validation.")
                      (list "groups/bal/ball/ball_asyncfileobserver.t.cpp"
                            "groups/bal/ball/ball_fileobserver2.t.cpp"
                            "groups/bal/ball/ball_recordstringformatter.t.cpp"
+                           "groups/bal/balst/balst_stacktraceresolver_filehelper.t.cpp"
                            "groups/bal/balst/balst_stacktraceutil.t.cpp"
                            "groups/bdl/bdlmt/bdlmt_eventscheduler.t.cpp"
                            "groups/bdl/bdlmt/bdlmt_timereventscheduler.t.cpp"
                            "groups/bdl/bdls/bdls_filesystemutil.t.cpp"
+                           "groups/bsl/bslh/bslh_hash.t.cpp"
                            "groups/bsl/bslh/bslh_hashpair.t.cpp"
                            "groups/bsl/bsls/bsls_platform.t.cpp"
                            "groups/bsl/bsls/bsls_stackaddressutil.t.cpp"
                            "groups/bsl/bsls/bsls_stopwatch.t.cpp"
+                           "groups/bsl/bsls/bsls_timeutil.t.cpp"
+                           "groups/bsl/bslstl/bslstl_deque.1.t.cpp"
+                           "groups/bsl/bslstl/bslstl_deque.2.t.cpp"
+                           "groups/bsl/bslstl/bslstl_deque.3.t.cpp"
                            "groups/bsl/bslstl/bslstl_function_invokerutil.t.cpp"))
                     #t))))
       (build-system cmake-build-system)
       (arguments
        `(#:parallel-tests? #f           ; Test parallelism may fail inconsistently.
          ;; Set UFID to build shared libraries. Flag descriptions can be found at
-         ;; https://bloomberg.github.io/bde-tools/reference/bde_repo.html#ufid
-         #:configure-flags ,(match %current-system
-            ((or "i686-linux" "armhf-linux")
-             ''("-DUFID=opt_dbg_exc_mt_32_shr_cpp17"))
-            (_
-             ''("-DUFID=opt_dbg_exc_mt_64_shr_cpp17")))
+         ;; https://bloomberg.github.io/bde-tools/bbs/reference/bbs_build_configuration.html#ufid
+         #:configure-flags '("-DUFID=opt_dbg_exc_mt_64_shr_cpp20")
          #:phases
          (modify-phases %standard-phases
            ;; Explicitly build tests separate from the main build.
@@ -2072,6 +2118,8 @@ implementation of STL containers, vocabulary types for representing common
 concepts (like dates and times), and building blocks for developing
 multi-threaded applications and network applications.")
       (home-page "https://github.com/bloomberg/bde")
+      ;; Out-of-memory on i686-linux, compile errors with non-x86.
+      (supported-systems '("x86_64-linux"))
       (license license:asl2.0))))
 
 (define-public gulrak-filesystem
@@ -2327,6 +2375,29 @@ parsing with only a single memory allocation.")
        ;; as strings. Building the tests fails with the modification.
        ((#:tests? _ #f) #f)))
     (properties '((hidden? . #t)))))
+
+(define-public optional-lite
+  (package
+    (name "optional-lite")
+    (version "3.5.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/martinmoene/optional-lite")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+                (base32
+                 "0jpsm94kp1504yk9s2km86zv8xrszz30qanmhz2ljmvsdblz2l47"))))
+    (build-system cmake-build-system)
+    (home-page "https://github.com/martinmoene/optional-lite")
+    (synopsis "Nullable object for C++98, C++11 and later")
+    (description
+     "Optional lite is a single-file header-only library to represent optional
+(nullable) objects and pass them by value.  The library aims to provide a
+C++17-like optional for use with C++98 and later.  If available,
+@code{std::optional} is used.")
+    (license license:boost1.0)))
 
 (define-public optionparser
   (package

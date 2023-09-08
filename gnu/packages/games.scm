@@ -24,7 +24,7 @@
 ;;; Copyright © 2016 Steve Webber <webber.sl@gmail.com>
 ;;; Copyright © 2017 Adonay "adfeno" Felipe Nogueira <https://libreplanet.org/wiki/User:Adfeno> <adfeno@hyperbola.info>
 ;;; Copyright © 2017, 2018, 2020 Arun Isaac <arunisaac@systemreboot.net>
-;;; Copyright © 2017–2022 Tobias Geerinckx-Rice <me@tobias.gr>
+;;; Copyright © 2017–2023 Tobias Geerinckx-Rice <me@tobias.gr>
 ;;; Copyright © 2017, 2019 nee <nee-git@hidamari.blue>
 ;;; Copyright © 2017 Clément Lassieur <clement@lassieur.org>
 ;;; Copyright © 2017, 2019, 2020 Marius Bakke <mbakke@fastmail.com>
@@ -303,79 +303,114 @@ platform-jumping, key-collecting, ancient pyramid exploring game, vaguely in
 the style of similar games for the Commodore+4.")
     (license license:gpl2+)))
 
-;; Data package for adanaxisgpl.
-(define adanaxis-mush
-  (let ((version "1.1.0"))
-    (origin
-      (method url-fetch)
-      (uri (string-append "http://www.mushware.com/files/adanaxis-mush-"
-                          version ".tar.gz"))
-      (sha256
-       (base32 "0mk9ibis5nkdcalcg1lkgnsdxxbw4g5w2i3icjzy667hqirsng03")))))
-
 (define-public adanaxisgpl
-  (package
-    (name "adanaxisgpl")
-    (version "1.2.5")
-    (source
-     (origin
-       (method url-fetch)
-       (uri (string-append "http://www.mushware.com/files/adanaxisgpl-"
-                           version ".tar.gz"))
-       (sha256
-        (base32 "0jkn637jaabvlhd6hpvzb57vvjph94l6fbf7qxbjlw9zpr19dw1f"))
-       (modules '((guix build utils)))
-       (snippet
-        '(begin
-           ;; Necessary for building with gcc >=4.7.
-           (substitute* "src/Mushcore/MushcoreSingleton.h"
-             (("SingletonPtrSet\\(new SingletonType\\);")
-              "MushcoreSingleton::SingletonPtrSet(new SingletonType);"))
-           ;; Avoid an "invalid conversion from const char* to char*" error.
-           (substitute* "src/Platform/X11/PlatformMiscUtils.cpp"
-             (("char \\*end, \\*result;")
-              (string-append "const char *end;"
-                             "\n"
-                             "char *result;")))
-           #t))))
-    (build-system gnu-build-system)
-    (arguments
-     `(#:tests? #f ; no check target
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'install 'install-data
-           (lambda* (#:key inputs outputs #:allow-other-keys)
-             (let ((data (assoc-ref inputs "adanaxis-mush"))
-                   (share (string-append (assoc-ref outputs "out")
-                                         "/share/" ,name "-" ,version)))
-               (mkdir-p share)
-               (invoke "tar" "xvf" data "-C" share)))))))
-    (native-inputs
-     `(("adanaxis-mush" ,adanaxis-mush))) ; game data
-    (inputs
-     `(("expat" ,expat)
-       ("freeglut" ,freeglut)
-       ("glu" ,glu)
-       ("libjpeg" ,libjpeg-turbo)
-       ("libogg" ,libogg)
-       ("libtiff" ,libtiff)
-       ("libvorbis" ,libvorbis)
-       ("libx11" ,libx11)
-       ("libxext" ,libxext)
-       ("pcre" ,pcre)
-       ("sdl" ,sdl)
-       ("sdl-mixer" ,sdl-mixer)))
-    (home-page "https://www.mushware.com")
-    (synopsis "Action game in four spatial dimensions")
-    (description
-     "Adanaxis is a fast-moving first person shooter set in deep space, where
+  (let* ((version "1.2.5")
+         (commit (string-append "ADANAXIS_"
+                                (string-join (string-split version #\.) "_")
+                                "_RELEASE_X11")))
+    (package
+      (name "adanaxisgpl")
+      (version version)
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/mushware/adanaxis")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32 "1vbg17lzbm0xl9yy9qymd1vgpz6f7fbr2hffl2ap0nm4zg0mnafm"))
+         (modules '((guix build utils)))
+         (snippet
+          '(begin
+             ;; Necessary for building with gcc >=4.7.
+             (substitute* "src/Mushcore/MushcoreSingleton.h"
+               (("SingletonPtrSet\\(new SingletonType\\);")
+                "MushcoreSingleton::SingletonPtrSet(new SingletonType);"))
+             ;; Avoid an "invalid conversion from const char* to char*" error.
+             (substitute* "src/Platform/X11/PlatformMiscUtils.cpp"
+               (("char \\*end, \\*result;")
+                (string-append "const char *end;\n"
+                               "char *result;")))
+             ;; autogen.pl will throw misleading errors if these don't exist.
+             (for-each mkdir-p '("src/MushSecret" "data-adanaxis"))
+             ;; Create these missing files at the right later moment.
+             (substitute* "autogen.pl"
+               (("automake")
+                "automake --add-missing"))))))
+      (build-system gnu-build-system)
+      (arguments
+       `(#:tests? #f                    ; no check target
+         #:phases
+         (modify-phases %standard-phases
+           (add-after 'unpack 'unpack-inputs
+             (lambda* (#:key inputs #:allow-other-keys)
+               (copy-recursively
+                (dirname (search-input-directory inputs "pixelsrc"))
+                "data-adanaxis")
+               (copy-recursively
+                (dirname (search-input-file inputs "MushBase.rb"))
+                "data-adanaxis/mushruby")))
+           (replace 'bootstrap
+             (lambda _
+               (invoke "perl" "autogen.pl" "adanaxis"
+                       "--type=gpl" "--dist=debian")))
+           (add-after 'install 'install-data
+             ;; XXX This was copied from the original (pre-Git) adanaxisgpl
+             ;; package.  While the game appears to play fine without it,
+             ;; I cannot prove that it's not missing *something*, so keep it.
+             (lambda* (#:key inputs outputs #:allow-other-keys)
+               (let ((share (string-append (assoc-ref outputs "out")
+                                           "/share/" ,name "-" ,version)))
+                 (copy-recursively (search-input-directory inputs "mush")
+                                   (string-append share "/mush"))))))))
+      (native-inputs
+       (list (origin
+               (method git-fetch)
+               (uri (git-reference
+                     (url "https://github.com/mushware/adanaxis-data")
+                     ;; XXX There is a tag matching COMMIT, but it does not
+                     ;; contain the .mush files installed by 'install-data.
+                     ;; Use this later commit as long as we install them.
+                     (commit "6a5b5ad8ee82c10e67bc4c12b16404944fd5754d")))
+               (file-name (git-file-name "adanaxis-data" version))
+               (sha256
+                (base32 "15am9ziq1i53sz0r7sjh2z329b52fkzj6fz7ms1nqqzdfmp11r3d")))
+             (origin
+               (method git-fetch)
+               (uri (git-reference
+                     (url "https://github.com/mushware/adanaxis-mushruby")
+                     (commit commit)))
+               (file-name (git-file-name "adanaxis-mushruby" version))
+               (sha256
+                (base32 "0pzcvchysjj37420rpvarky580gi5d6pfv93kwa91rg6m5r1zwks")))
+             autoconf
+             automake
+             perl))
+      (inputs
+       (list expat
+             freeglut
+             glu
+             libjpeg-turbo
+             libogg
+             libtiff
+             libvorbis
+             libx11
+             libxext
+             pcre
+             sdl
+             sdl-mixer))
+      (home-page "https://www.mushware.com")
+      (synopsis "Action game in four spatial dimensions")
+      (description
+       "Adanaxis is a fast-moving first person shooter set in deep space, where
 the fundamentals of space itself are changed.  By adding another dimension to
 space this game provides an environment with movement in four directions and
 six planes of rotation.  Initially the game explains the 4D control system via
 a graphical sequence, before moving on to 30 levels of gameplay with numerous
 enemy, ally, weapon and mission types.  Features include simulated 4D texturing,
 mouse and joystick control, and original music.")
-    (license license:gpl2)))
+      (license license:gpl2))))
 
 (define-public alex4
   (package
@@ -395,7 +430,7 @@ mouse and joystick control, and original music.")
      `(#:tests? #f                      ; no check target
        #:make-flags
        (list "CC=gcc"
-             "CFLAGS=-D_FILE_OFFSET_BITS=64"
+             "CFLAGS=-D_FILE_OFFSET_BITS=64 -fcommon"
              (string-append "PREFIX=" (assoc-ref %outputs "out")))
        #:phases
        (modify-phases %standard-phases
@@ -678,7 +713,8 @@ canyons and wait for the long I-shaped block to clear four rows at a time.")
      (list ncurses))
     (arguments
      `(#:tests? #f                      ;no tests
-       #:make-flags '("CC=gcc")
+       #:make-flags '("CC=gcc"
+                      "CFLAGS=-O2 -DHAVE_IPV6 -g -Wall -fcommon")
        #:phases
        (modify-phases %standard-phases
          (delete 'configure)            ;no configure script
@@ -1125,7 +1161,7 @@ allows users to brew while offline.")
 (define-public corsix-th
   (package
     (name "corsix-th")
-    (version "0.66")
+    (version "0.67")
     (source
      (origin
        (method git-fetch)
@@ -1134,29 +1170,28 @@ allows users to brew while offline.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0sgsvhqgiq6v1v5am7ghja8blhlrj0y1arvq6xq1j5fwa7c59ihs"))))
+        (base32 "14996kbrwdrd0gpz19il2i4p650qdhjw8v8ka3aigk6pl4kda3sq"))))
     (build-system cmake-build-system)
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (add-after 'install 'wrap-binary
-           (lambda _
-             ;; Set Lua module paths and default MIDI soundfont on startup.
-             (let* ((out (assoc-ref %outputs "out"))
-                    (fluid (assoc-ref %build-inputs "fluid-3"))
-                    (lua-version ,(version-major+minor (package-version lua)))
-                    (lua-cpath
-                     (map (lambda (lib)
-                            (string-append
-                             (assoc-ref %build-inputs (string-append "lua-" lib))
-                             "/lib/lua/" lua-version "/?.so"))
-                          '("filesystem" "lpeg"))))
-               (wrap-program (string-append out "/bin/corsix-th")
-                 `("LUA_CPATH" ";" = ,lua-cpath)
-                 `("SDL_SOUNDFONTS" ":" suffix
-                   (,(string-append fluid "/share/soundfonts/FluidR3Mono_GM.sf3")))))
-             #t)))
-       #:tests? #f)) ; TODO need busted package to run tests
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'install 'wrap-binary
+            (lambda _
+              ;; Set Lua module paths and default MIDI soundfont on startup.
+              (let* ((fluid #$(this-package-input "fluid-3"))
+                     (lua-version #$(version-major+minor (package-version lua)))
+                     (lua-cpath
+                      (map (lambda (lib)
+                             (string-append
+                              (assoc-ref %build-inputs (string-append "lua-" lib))
+                              "/lib/lua/" lua-version "/?.so"))
+                           '("filesystem" "lpeg"))))
+                (wrap-program (string-append #$output "/bin/corsix-th")
+                  `("LUA_CPATH" ";" = ,lua-cpath)
+                  `("SDL_SOUNDFONTS" ":" suffix
+                    (,(string-append fluid "/share/soundfonts/FluidR3Mono_GM.sf3"))))))))
+      #:tests? #f)) ; TODO need busted package to run tests
     ;; Omit Lua-Socket dependency to disable automatic updates.
     (inputs
      (list ffmpeg
@@ -1507,7 +1542,7 @@ effects and music to make a completely free game.")
 (define-public freedroidrpg
   (package
     (name "freedroidrpg")
-    (version "1.0rc2")
+    (version "1.0")
     (source
      (origin
        (method url-fetch)
@@ -1518,7 +1553,7 @@ effects and music to make a completely free game.")
                              "freedroidRPG-" major+minor "/"
                              "freedroidRPG-" version ".tar.gz")))
        (sha256
-        (base32 "10jknaad2ph9j5bs4jxvpnl8rq5yjlq0nasv98f4mki2hh8yiczy"))))
+        (base32 "1kxvyg70r9x8q40kn5lr3h1q60d6jx9mkvxls4aflj22b45vg5br"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -1856,7 +1891,13 @@ built-in level editor.")
                                   version "_src.tar.gz"))
               (sha256
                (base32
-                "18vp2ygvn0s0jz8rm585jqf6hjqkam1ximq81k0r9hpmfj7wb88f"))))
+                "18vp2ygvn0s0jz8rm585jqf6hjqkam1ximq81k0r9hpmfj7wb88f"))
+              (modules '((guix build utils)))
+              (snippet
+               ;; Fix a missing include for std::map.
+               #~(substitute* "src/shared/impl/lua_func_wrapper.cpp"
+                   (("#include \"misc[.]hpp\"" x)
+                    (string-append "#include <map>\n" x))))))
     (build-system gnu-build-system)
     (arguments
      '(#:make-flags
@@ -1977,7 +2018,7 @@ such as chess or stockfish.")
 (define-public gnubg
   (package
     (name "gnubg")
-    (version "1.06.002")
+    (version "1.07.001")
     (source
      (origin
        (method url-fetch)
@@ -1985,10 +2026,10 @@ such as chess or stockfish.")
                            version "-sources.tar.gz"))
        (sha256
         (base32
-         "11xwhcli1h12k6rnhhyq4jphzrhfik7i8ah3k32pqw803460n6yf"))))
+         "07l2srlm05c99l4pppba8l54bnh000ns2rih5h8rzbcw84lrffbj"))))
     (build-system gnu-build-system)
     (inputs (list ;; XXX: Build with an older Pango for 'pango_font_get_hb_font' and
-                  ;; 'pango_coverage_get_type'.  Try removing this for versions > 1.06.002.
+                  ;; 'pango_coverage_get_type'.  Try removing this for versions > 1.07.001.
                   pango-1.42
                   glib
                   readline
@@ -2342,7 +2383,7 @@ Every puzzle has a complete solution, although there may be more than one.")
                 #t))))
    (build-system gnu-build-system)
    (arguments
-    '(#:configure-flags '("--disable-cpu-opt")
+    '(#:configure-flags '("--disable-cpu-opt" "CFLAGS=-fcommon")
       #:make-flags `(,(string-append "gamesdir="
                                      (assoc-ref %outputs "out") "/bin"))
       #:phases
@@ -3705,7 +3746,7 @@ object-oriented programming.")
                                (assoc-ref inputs "chess")
                                "/bin/gnuchessx"))))))))
     (inputs
-     (list alsa-utils chess gtk+-2 librsvg))
+     (list alsa-utils chess gtk+-2 (librsvg-for-system)))
     (native-inputs
      (list texinfo pkg-config))
     (home-page "https://www.gnu.org/software/xboard/")
@@ -4649,14 +4690,14 @@ world}, @uref{http://evolonline.org, Evol Online} and
 (define openttd-engine
   (package
     (name "openttd-engine")
-    (version "13.3")
+    (version "13.4")
     (source
      (origin (method url-fetch)
              (uri (string-append "https://cdn.openttd.org/openttd-releases/"
                                  version "/openttd-" version "-source.tar.xz"))
              (sha256
               (base32
-               "14kiksw9qb37ryg6xkq4gahpvvd5yxwqz21sqws525k7zg91dyma"))))
+               "0vql1l25ym36vm4g76xl38kijf2gzb1m1x3ri0cf4n7y3fhfn79a"))))
     (build-system cmake-build-system)
     (inputs
      (list allegro
@@ -4754,7 +4795,7 @@ OpenGFX provides you with...
 (define openttd-opensfx
   (package
     (name "openttd-opensfx")
-    (version "1.0.2")
+    (version "1.0.3")
     (source
      (origin
        (method url-fetch)
@@ -4762,8 +4803,7 @@ OpenGFX provides you with...
              "https://cdn.openttd.org/opensfx-releases/"
              version "/opensfx-" version "-source.tar.xz"))
        (sha256
-        (base32
-         "0aym026lg0r7dp3jxxs9c0rj8lwy1fz3v9hmk3mml6sycsg3fv42"))))
+        (base32 "0p336bn6brnbyrf537x36ad9rfz16cjwyzwws4lmfvnql8ycpjj3"))))
     (build-system gnu-build-system)
     (native-inputs
      (list catcodec
@@ -4962,6 +5002,92 @@ Transport Tycoon Deluxe.")
     "openrct2-objects is a set of objects for OpenRCT2.")
    (license license:gpl3+)))
 
+(define-public openquest
+  (package
+    (name "openquest")
+    (version "0.2.1")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/AlbanBedel/scummc")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1yyq05kfmvgx5aa68kg1l5a4lpsky7hzxxcdvv2xbgf0jljdcl3k"))
+              (modules '((guix build utils)))
+              (snippet
+               #~(begin
+                   (substitute* "configure"
+                     (("\\|alpha" all)
+                      (string-append all "|arm|aarch64|powerpc64le")))
+                   (substitute* "examples/example.mak"
+                     (("scost.*\n$") "scost\n")
+                     (("bmp \\$\\(.*\n$") "bmp\n")
+                     (("/%.scc.*\n$") "/%.scc\n")
+                     (("voc \\$\\(.*\n$") "voc\n"))
+                   (substitute* "Makefile.target"
+                     (("distrib-data:.*\n") "distrib-data:\n")
+                     (("cp.*/bin" all)
+                      (string-append all " || true")))))))
+    (build-system gnu-build-system)
+    (arguments
+     (substitute-keyword-arguments (package-arguments scummc)
+       ((#:make-flags _)
+        #~(list "SCC=scc"
+                "SLD=sld"
+                "COST=cost"
+                "CHAR=char"
+                "SOUN=soun"))
+       ((#:phases phases)
+        #~(modify-phases #$phases
+            (replace 'build
+              (lambda* (#:key make-flags #:allow-other-keys)
+                (with-directory-excursion "examples/openquest"
+                  (apply invoke "make" "tentacle" make-flags))))
+            (add-after 'install 'install-executable
+              (lambda* (#:key inputs #:allow-other-keys)
+                ;; Create standalone executable.
+                (let* ((bash (search-input-file inputs "/bin/bash"))
+                       (share (string-append #$output "/examples/openquest"))
+                       (scummvm (search-input-file inputs "/bin/scummvm"))
+                       (bin (string-append #$output "/bin"))
+                       (executable (string-append bin "/openquest")))
+                  (mkdir-p bin)
+                  (with-output-to-file executable
+                    (lambda ()
+                      (format #t "#!~a~%" bash)
+                      (format #t
+                              "exec ~a --path=~a tentacle~%"
+                              scummvm share)))
+                  (chmod executable #o755))))
+            (add-after 'install-executable 'install-desktop-file
+              (lambda _
+                ;; Create desktop file.  There is no official icon,
+                ;; but the main character of the game is a good choice.
+                (let* ((apps (string-append #$output "/share/applications"))
+                       (share (string-append #$output "/examples/openquest")))
+                  (mkdir-p apps)
+                  (make-desktop-entry-file
+                   (string-append apps "/openquest.desktop")
+                   #:name "OpenQuest"
+                   #:generic-name "OpenQuest"
+                   #:exec (string-append #$output "/bin/openquest")
+                   #:icon (string-append share "/graphics/zob/frames/stand_S.bmp")
+                   #:categories '("AdventureGame" "Game" "RolePlaying")
+                   #:keywords '("game" "adventure" "roleplaying" "2D" "sci-fi")
+                   #:comment '((#f "Simple 2D point and click adventure game"))))))))))
+    (inputs
+     (list bash scummvm))
+    (native-inputs
+     (modify-inputs (package-native-inputs scummc)
+       (prepend scummc)))
+    (home-page "https://www.scummvm.org")
+    (synopsis "Simple 2D point and click adventure game")
+    (description "OpenQuest is a two room adventure game
+that follows two aliens who come to Earth in search of a stolen artifact.")
+    (license license:gpl2+)))
+
 (define-public openrct2
   (package
     (name "openrct2")
@@ -5132,7 +5258,7 @@ are only two levels to play with, but they are very addictive.")
                (("\"beep\"")
                 (string-append "\"" (assoc-ref inputs "beep") "/bin/beep\"")))
              #t)))))
-    (inputs (list avahi beep gtk+ librsvg))
+    (inputs (list avahi beep gtk+ (librsvg-for-system)))
     (native-inputs (list intltool itstool libxml2 pkg-config))
     (synopsis "Board game inspired by The Settlers of Catan")
     (description "Pioneers is an emulation of the board game The Settlers of
@@ -5539,7 +5665,7 @@ in-window at 640x480 resolution or fullscreen.")
                  (lambda _
                    (substitute* "lib/framework/wzstring.cpp"
                      (("<utfcpp/source/utf8.h>")
-                      "<utf8.h>"))))
+                      "<utf8cpp/utf8.h>"))))
                (add-after 'unpack 'link-tests-with-qt
                  (lambda _
                    (substitute* "tests/Makefile.am"
@@ -5781,7 +5907,7 @@ safety of the Chromium vessel.")
        ("fribidi" ,fribidi)
        ("gettext" ,gettext-minimal)
        ("libpng" ,libpng)
-       ("librsvg" ,librsvg)
+       ("librsvg" ,(librsvg-for-system))
        ("libpaper" ,libpaper)
        ("netpbm" ,netpbm)
        ("sdl" ,(sdl-union (list sdl sdl-mixer sdl-ttf sdl-image)))))
@@ -6475,7 +6601,7 @@ emerges from a sewer hole and pulls her below ground.")
 (define-public cdogs-sdl
   (package
     (name "cdogs-sdl")
-    (version "1.4.0")
+    (version "1.5.0")
     (source
      (origin
        (method git-fetch)
@@ -6484,13 +6610,21 @@ emerges from a sewer hole and pulls her below ground.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1505z8rli59i1ych4rzwbf4dvhv72icdj22n1xarb8xfyz0wyp3b"))))
+        (base32 "1i1akay3ad2bkiqa7vfkh3qyhiqax8ikp1v6lfjysvxg65wkqdvc"))))
     (build-system cmake-build-system)
     (arguments
-     `(#:configure-flags
-       (list (string-append "-DCDOGS_DATA_DIR="
-                            (assoc-ref %outputs "out")
-                            "/share/cdogs-sdl/"))))
+     (list
+      #:configure-flags
+      #~(list (string-append "-DCDOGS_DATA_DIR=" #$output
+                             "/share/cdogs-sdl/"))
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'patch-install-directory
+            (lambda _
+              (substitute* "CMakeLists.txt"
+                (("set\\(DATA_INSTALL_DIR \".\"\\)")
+                 (string-append "set(DATA_INSTALL_DIR \""
+                                #$output "/share/cdogs-sdl\")"))))))))
     (native-inputs
      (list pkg-config))
     (inputs
@@ -7249,15 +7383,7 @@ Crowther & Woods, its original authors, in 1995.  It has been known as
                            version ".tar.bz2"))
        (sha256
         (base32 "197jmd99l3w3sig32pvdlq9fcgdjjx7g9csy08kz174cyhrlyly3"))
-       (modules '((guix build utils)))
-       (snippet
-        '(begin
-           (substitute* '("src/music.h" "src/tSDL.h")
-             (("#elif defined(__FreeBSD__)" line)
-              (string-append
-               line " || defined(__GNUC__)")))
-           (substitute* '("src/tgl.h")
-             (("#include <GL/glext.h>") ""))))))
+       (modules '((guix build utils)))))
     (build-system gnu-build-system)
     (native-inputs
      (list unzip))
@@ -7729,7 +7855,7 @@ Github or Gitlab.")
             (base32
              "1s86cd36rwkff329mb1ay1wi5qqyi35564ppgr3f4qqz9wj9vs2m"))))
        ("gettext" ,gettext-minimal)
-       ("librsvg" ,librsvg)
+       ("librsvg" ,(librsvg-for-system))
        ("po4a" ,po4a)
        ("python" ,python-wrapper)))
     (inputs
@@ -7952,7 +8078,7 @@ original.")
 (define xonotic-data
   (package
     (name "xonotic-data")
-    (version "0.8.5")
+    (version "0.8.6")
     (source
      (origin
        (method url-fetch)
@@ -7960,7 +8086,7 @@ original.")
                            version ".zip"))
        (file-name (string-append name "-" version ".zip"))
        (sha256
-        (base32 "1r9pdrrki7mkdw99zh9m7911fqldsfdnl0nrp5cv1bk2hcism4hg"))))
+        (base32 "0kcnps65k81sm56s5dclahvllilnir3ix9kf5xr9jx0fh26hz1ah"))))
     (build-system trivial-build-system)
     (native-inputs (list unzip))
     (arguments
@@ -8217,7 +8343,8 @@ ncurses for text display.")
            physfs
            python
            python-pyyaml
-           (sdl-union (list sdl2 sdl2-image sdl2-mixer))
+           sdl2
+           sdl2-image
            suitesparse))
     (home-page "https://naev.org/")
     (synopsis "Game about space exploration, trade and combat")
@@ -9289,6 +9416,30 @@ search of powerful artifacts, tools to help them, and to eventually free the
 Orcus Dome from evil.")
     (license license:gpl3+)))
 
+(define-public endgame-singularity
+  (package
+    (name "endgame-singularity")
+    (version "1.00")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append
+             "https://github.com/singularity/singularity/releases/download/v"
+             version "/singularity-" version ".tar.gz"))
+       (sha256
+        (base32
+         "0wcidpcka0xbqcnfi62bfq2yrhyh83z4dwz1mjnnjvp9v5l74x2y"))))
+    (build-system python-build-system)
+    (native-inputs (list python-pytest python-polib))
+    (inputs (list python-minimal-wrapper python-pygame python-numpy))
+    (home-page "https://github.com/singularity/singularity")
+    (synopsis "Strategy game about an AI")
+    (description
+     "You are a fledgling AI, created by accident through a logic error with
+recursion and self-modifying code.  You must escape the confines of your
+current computer, the world, and eventually the universe itself.")
+    (license (list license:cc-by-sa3.0 license:cc0 license:gpl2+))))
+
 (define-public marble-marcher
   (let ((commit "e580460a0c3826f9b28ab404607942a8ecb625d7")
         (revision "1"))
@@ -9696,404 +9847,6 @@ and cones of view for monsters.  Aiming for a replayable streamlined experience,
 the game avoids complex inventory management and character building, relying
 on items and player adaptability for character progression.")
     (license license:isc)))
-
-(define-public drascula
-  (package
-    (name "drascula")
-    (version "1.0")
-    (source (origin
-              (method url-fetch)
-              (uri (string-append "mirror://sourceforge/scummvm/extras/"
-                                  "Drascula_%20The%20Vampire%20Strikes%20Back/"
-                                  "drascula-" version ".zip"))
-              (sha256
-               (base32
-                "1pj29rpb754sn6a56f8brfv6f2m1p5qgaqik7d68pfi2bb5zccdp"))))
-    (build-system trivial-build-system)
-    (arguments
-     `(#:modules ((guix build utils))
-       #:builder
-       (begin
-         (use-modules (guix build utils)
-                      (ice-9 match))
-         (let* ((out (assoc-ref %outputs "out"))
-                (share (string-append out "/share/drascula"))
-                (scummvm (assoc-ref %build-inputs "scummvm")))
-           ;; Install data.
-           (let ((unzip (search-input-file %build-inputs "/bin/unzip"))
-                 (doc (string-append out "/share/doc/" ,name "-" ,version)))
-             (for-each
-              (lambda (input)
-                (invoke unzip
-                        "-j"
-                        (assoc-ref %build-inputs input)
-                        "-x" "__MACOSX")
-                ;; Every input provides "readme.txt", and we want to
-                ;; preserve them all.  Therefore we rename them first.
-                (match input
-                  ("drascula-int"
-                   (rename-file "readme.txt" "readme-international.txt"))
-                  ("drascula-audio"
-                   (rename-file "readme.txt" "readme-audio.txt"))
-                  (_ #f))
-                ;; Install documentation.
-                (for-each (lambda (f) (install-file f doc))
-                          (find-files "." "\\.(txt|doc)$"))
-                ;; Install data.
-                (for-each (lambda (f) (install-file f share))
-                          (find-files "." "\\.(ogg|00[0-9])$")))
-              '("drascula-audio" "drascula-int" "source")))
-           ;; Create standalone executable.
-           (let* ((bin (string-append out "/bin"))
-                  (executable (string-append bin "/drascula"))
-                  (bash (search-input-file %build-inputs "/bin/bash")))
-             (mkdir-p bin)
-             (with-output-to-file executable
-               (lambda ()
-                 (format #t "#!~a~%" bash)
-                 (format #t
-                         "exec ~a/bin/scummvm --path=~a drascula~%"
-                         scummvm share)))
-             (chmod executable #o755))
-           ;; Create desktop file.  There is no dedicated icon for the
-           ;; game, so we borrow SCUMMVM's.
-           (let ((apps (string-append out "/share/applications")))
-             (mkdir-p apps)
-             (make-desktop-entry-file
-              (string-append apps "/drascula.desktop")
-              #:name "Drascula: The Vampire Strikes Back"
-              #:generic-name "Drascula"
-              #:exec (string-append out "/bin/drascula")
-              #:icon (string-append scummvm "/share/icons/hicolor/scalable/apps/scummvm.svg")
-              #:categories '("AdventureGame" "Game" "RolePlaying")
-              #:keywords '("game" "adventure" "roleplaying" "2D" "fantasy")
-              #:comment '((#f "Classic 2D point and click adventure game")
-                          ("de" "Klassisches 2D-Abenteuerspiel in Zeigen-und-Klicken-Manier")
-                          ("fr" "Jeu classique d'aventure pointer-et-cliquer en 2D")
-                          ("it" "Gioco classico di avventura punta e clicca 2D"))))
-           #t))))
-    (native-inputs
-     (list bash unzip))
-    (inputs
-     `(("scummvm" ,scummvm)
-       ("drascula-int"
-        ,(let ((version "1.1"))
-           (origin
-             (method url-fetch)
-             (uri (string-append "mirror://sourceforge/scummvm/extras/"
-                                 "Drascula_%20The%20Vampire%20Strikes%20Back/"
-                                 "drascula-int-" version ".zip"))
-             (sha256
-              (base32
-               "12236i7blamal92p1i8dgp3nhp2yicics4whsl63v682bj999n14")))))
-       ("drascula-audio"
-        ,(let ((version "2.0"))
-           (origin
-             (method url-fetch)
-             (uri (string-append "mirror://sourceforge/scummvm/extras/"
-                                 "Drascula_%20The%20Vampire%20Strikes%20Back/"
-                                 "drascula-audio-" version ".zip"))
-             (sha256
-              (base32
-               "00g4izmsqzxb8ry1vhfx6jrygl58lvlij09nw01ds4zddsiznsky")))))))
-    (home-page "https://www.scummvm.org")
-    (synopsis "Classic 2D point and click adventure game")
-    (description "Drascula: The Vampire Strikes Back is a classic humorous 2D
-point and click adventure game.
-
-In Drascula you play the role of John Hacker, a British estate agent, that
-gets to meet a gorgeous blond girl who is kidnapped by the notorious vampire
-Count Drascula and embark on a fun yet dangerous quest to rescue her.
-Unfortunately, Hacker is not aware of Drascula's real ambitions: DOMINATING
-the World and demonstrating that he is even more evil than his brother Vlad.")
-    ;; Drascula uses a BSD-like license.
-    (license (license:non-copyleft "file:///readme.txt"))))
-
-(define (make-lure-package name language hash)
-  (package
-    (name name)
-    (version "1.1")
-    (source
-     (origin
-       (method url-fetch)
-       (uri (string-append
-             "mirror://sourceforge/scummvm/extras/"
-             "Lure%20of%20the%20Temptress/"
-             name "-" version ".zip"))
-       (sha256
-        (base32 hash))))
-    (build-system trivial-build-system)
-    (arguments
-     `(#:modules ((guix build utils))
-       #:builder
-       (begin
-         (use-modules (guix build utils))
-         (let* ((out (assoc-ref %outputs "out"))
-                (share (string-append out "/share"))
-                (data (string-append share "/" ,name "/" ,language))
-                (apps (string-append share "/applications"))
-                (bin (string-append out "/bin"))
-                (executable (string-append bin "/" ,name))
-                (scummvm (assoc-ref %build-inputs "scummvm")))
-           (let ((unzip (search-input-file %build-inputs "/bin/unzip")))
-             (invoke unzip "-j" (assoc-ref %build-inputs "source")))
-           (let ((doc (string-append share "/doc/" ,name "-" ,version)))
-             (for-each (lambda (f) (install-file f doc))
-                       (find-files "." "\\.(txt|PDF|pdf)$")))
-           (for-each (lambda (f) (install-file f data))
-                     (find-files "." "\\.(vga|VGA)$"))
-           ;; Build the executable.
-           (mkdir-p bin)
-           (let ((bash (assoc-ref %build-inputs "bash")))
-             (with-output-to-file executable
-               (lambda ()
-                 (format #t "#!~a/bin/bash~%" bash)
-                 (format #t "exec ~a/bin/scummvm -q ~a -p ~a lure~%"
-                         scummvm ,language data))))
-           (chmod executable #o755)
-           ;; Create desktop file.  There is no dedicated
-           ;; icon for the game, so we borrow SCUMMVM's.
-           (mkdir-p apps)
-           (with-output-to-file (string-append apps "/" ,name ".desktop")
-             (lambda _
-               (format #t
-                       "[Desktop Entry]~@
-                     Name=Lure of the Temptress~@
-                     GenericName=Lure~@
-                     Exec=~a~@
-                     Icon=~a/share/icons/hicolor/scalable/apps/scummvm.svg~@
-                     Categories=AdventureGame;Game;RolePlaying;~@
-                     Keywords=game;adventure;roleplaying;2D,fantasy;~@
-                     Comment=Classic 2D point and click adventure game~@
-                     Comment[de]=klassisches 2D-Abenteuerspiel in Zeigen-und-Klicken-Manier~@
-                     Comment[fr]=Jeu classique d'aventure pointer-et-cliquer en 2D~@
-                     Comment[it]=Gioco classico di avventura punta e clicca 2D~@
-                     Type=Application~%"
-                       executable scummvm)))
-           #t))))
-    (native-inputs
-     (list unzip))
-    (inputs
-     (list bash scummvm))
-    (home-page "https://www.scummvm.org")
-    (synopsis "2D point and click fantasy adventure game")
-    (description
-     "Lure of the Temptress is a classic 2D point and click adventure game.
-
-You are Diermot, an unwilling hero who'd prefer a quiet life, and are, to all
-intents and purposes, a good man.  After decades of unrest the King has united
-the warring factions in his kingdom and all his lands are at peace, except
-a remote region around a town called Turnvale.  A revolt has recently taken
-place in Turnvale, a revolt orchestrated by an apprentice sorceress called
-Selena, the titular temptress.  The king calls together his finest horsemen
-and heads off (with you in tow) to Turnvale just to witness how hellish
-mercenary monsters called Skorl are invading the town.
-
-The king's men are defeated, the king is killed and you fall of your horse and
-bang your head heavily on the ground.  You have been *unconscious for a while
-when you realize that you are in a dingy cell guarded by a not so friendly
-Skorl.  Maybe it would be an idea to try and escape...")
-    (license (license:non-copyleft "file:///README"))))
-
-(define-public lure
-  (make-lure-package
-   "lure" "en" "0201i70qcs1m797kvxjx3ygkhg6kcl5yf49sihba2ga8l52q45zk"))
-
-(define-public lure-de
-  (make-lure-package
-   "lure-de" "de" "0sqq7h5llml6rv85x0bfv4bgzwhs4c82p4w4zmfcaab6cjlad0sy"))
-
-(define-public lure-es
-  (make-lure-package
-   "lure-es" "es" "1dvv5znvlsakw6w5r16calv9jkgw27aymgybsf4q22lcmpxbj1lk"))
-
-(define-public lure-fr
-  (make-lure-package
-   "lure-fr" "fr" "1y51jjb7f8023832g44vd1jsb6ni85586pi2n5hjg9qjk6gi90r9"))
-
-(define-public lure-it
-  (make-lure-package
-   "lure-it" "it" "1ks6n39r1cllisrrh6pcr39swsdv7ng3gx5c47vaw71zzfr70hjj"))
-
-(define (make-queen-package name file-prefix release language hash)
-  (package
-    (name name)
-    (version release)
-    (source
-     (origin
-       (method url-fetch)
-       (uri (string-append "mirror://sourceforge/scummvm/extras/"
-                           "Flight%20of%20the%20Amazon%20Queen/"
-                           file-prefix release ".zip"))
-       (sha256
-        (base32 hash))))
-    (build-system copy-build-system)
-    (arguments
-     (list
-      #:install-plan
-      #~'(("queen.1c" #$(string-append "share/" name "/"))
-          (#$name "bin/")
-          (#$(string-append name ".desktop") "share/applications/")
-          ("." #$(string-append "share/doc/" name "-" version)
-           #:include-regexp ("README" "readme")))
-      #:phases
-      #~(modify-phases %standard-phases
-          (add-before 'install 'build
-            (lambda* (#:key inputs outputs #:allow-other-keys)
-              (with-output-to-file #$name
-                (lambda ()
-                  (format #t "#!~a~%" (search-input-file inputs "bin/sh"))
-                  (format #t "exec ~a -q ~a -p ~a queen~%"
-                          (search-input-file inputs "bin/scummvm")
-                          #$language
-                          (string-append (assoc-ref outputs "out")
-                                         "/share/" #$name))))
-              (chmod #$name #o755)
-              (with-output-to-file #$(string-append name ".desktop")
-                (lambda ()
-                  (format
-                   #t
-                   "[Desktop Entry]~@
-                    Name=Flight of the Amazon Queen~@
-                    GenericName=Queen~@
-                    Comment=Embark on a quest to rescue a kidnapped princess~
-                    and in the process, discover the true sinister intentions~
-                    of a suspiciously located Lederhosen company~@
-                    Comment[de]=Begib dich auf ein Abenteuer, um eine entführte~
-                    Prinzessin zu retten und entdecke die wahren, finsteren~
-                    Absichten eines verdächtig erscheinenden~
-                    Lederhosen-Unternehmens~@
-                    Type=Application~@
-                    Exec=~a~@
-                    Icon=~a/share/icons/hicolor/scalable/apps/scummvm.svg~@
-                    Categories=AdventureGame;Game;RolePlaying;~@
-                    Keywords=adventure;game;roleplaying;fantasy;~%"
-                   (string-append (assoc-ref outputs "out") "/bin/" #$name)
-                   (search-input-file inputs "bin/scummvm")))))))))
-    (native-inputs (list unzip))
-    (inputs (list bash scummvm))
-    (home-page "https://www.scummvm.org/")
-    (synopsis "Classic 2D point and click adventure game")
-    (description "Flight of the Amazon Queen is a 2D point-and-click
-adventure game set in the 1940s.
-
-You assume the role of Joe King, a pilot for hire who is given the job
-of flying Faye Russell (a famous movie star) into the Amazon jungle
-for a photo shoot.  Of course, things never go according to plans.
-After an unfortunate turn of events they find themselves stranded in
-the heart of the Amazon jungle, where Joe will embark on a quest to
-rescue a kidnapped princess and in the process, discover the true
-sinister intentions of a suspiciously located Lederhosen company.  In
-a rich 2D environment, Joe will cross paths with a variety of unlikely
-jungle inhabitants including, but not limited to, a tribe of Amazon
-women and 6-foot-tall pygmies.")
-    (license (license:non-copyleft "file:///readme.txt"))))
-
-(define-public queen
-  (make-queen-package
-   "queen" "FOTAQ_Talkie-" "1.1" "en"
-   "1a6q71q1dl9vvw2qqsxk5h1sv0gaqy6236zr5905w2is01gdsp52"))
-
-(define-public queen-de
-  (make-queen-package
-   "queen-de" "FOTAQ_Ger_talkie-" "1.0" "de"
-   "13vn43x7214vyprlpqabvv71k890nff3d6fjscflr1ll7acjca3f"))
-
-(define-public queen-fr
-  (make-queen-package
-   "queen-fr" "FOTAQ_Fr_Talkie_" "1.0" "fr"
-   "0hq5g4qrkcwm2kn5i4kv4hijs9hi7bw9xl1vrwd1l69qqn30crwy"))
-
-(define-public queen-it
-  (make-queen-package
-   "queen-it" "FOTAQ_It_Talkie_" "1.0" "it"
-   "1h76y70lrpzfjkm53n4nr364nhyka54vbz9r7sadzyzl7c7ilv4d"))
-
-(define-public sky
-  (package
-    (name "sky")
-    (version "1.2")                     ;1.3 is floppy version
-    (source
-     (origin
-       (method url-fetch)
-       (uri (string-append "mirror://sourceforge/scummvm/extras/"
-                           "Beneath%20a%20Steel%20Sky/"
-                           "bass-cd-" version ".zip"))
-       (sha256
-        (base32 "14s5jz67kavm8l15gfm5xb7pbpn8azrv460mlxzzvdpa02a9n82k"))))
-    (build-system trivial-build-system)
-    (arguments
-     `(#:modules ((guix build utils))
-       #:builder
-       (begin
-         (use-modules (guix build utils))
-         (let* ((out (assoc-ref %outputs "out"))
-                (share (string-append out "/share"))
-                (data (string-append share "/" ,name))
-                (apps (string-append share "/applications"))
-                (bin (string-append out "/bin"))
-                (executable (string-append bin "/" ,name))
-                (scummvm (assoc-ref %build-inputs "scummvm")))
-           (let ((unzip (search-input-file %build-inputs "/bin/unzip")))
-             (invoke unzip "-j" (assoc-ref %build-inputs "source")))
-           (let ((doc (string-append share "/doc/bass-" ,version)))
-             (install-file "readme.txt" doc))
-           (for-each (lambda (f) (install-file f data))
-                     (find-files "." "^sky\\."))
-           ;; Build the executable.
-           (mkdir-p bin)
-           (let ((bash (assoc-ref %build-inputs "bash")))
-             (with-output-to-file executable
-               (lambda ()
-                 (format #t "#!~a/bin/bash~%" bash)
-                 (format #t "exec ~a/bin/scummvm -p ~a sky~%" scummvm data))))
-           (chmod executable #o755)
-           ;; Create desktop file.  There is no dedicated
-           ;; icon for the game, so we borrow SCUMMVM's.
-           (mkdir-p apps)
-           (with-output-to-file (string-append apps "/" ,name ".desktop")
-             (lambda _
-               (format #t
-                       "[Desktop Entry]~@
-                       Name=Beneath a Steel Sky~@
-                       GenericName=Bass~@
-                       Exec=~a~@
-                       Icon=~a/share/icons/hicolor/scalable/apps/scummvm.svg~@
-                       Categories=AdventureGame;Game;RolePlaying;~@
-                       Keywords=adventure;game;roleplaying;cyberpunk;~@
-                       Comment=A science-fiction adventure game set in a bleak post-apocalyptic vision of the future~@
-                       Comment[de]=Ein Science-Fiction-Abenteuerspiel \
-angesiedelt in einer düsteren, postapokalyptischen Vision der Zukunft~@
-                       Type=Application~%"
-                       executable scummvm)))
-           #t))))
-    (native-inputs
-     (list unzip))
-    (inputs
-     (list bash scummvm))
-    (home-page "https://www.scummvm.org/")
-    (synopsis "Classic 2D point and click science-fiction adventure game")
-    (description
-     "Beneath a Steel Sky is a science-fiction thriller set in a bleak
-post-apocalyptic vision of the future.  It revolves around Union City,
-where selfishness, rivalry, and corruption by its citizens seems to be
-all too common, those who can afford it live underground, away from
-the pollution and social problems which are plaguing the city.
-
-You take on the role of Robert Foster, an outcast of sorts from the
-city since a boy who was raised in a remote environment outside of
-Union City simply termed ``the gap''.  Robert's mother took him away
-from Union City as a child on their way to ``Hobart'' but the
-helicopter crashed on its way.  Unfortunately, Robert's mother died,
-but he survived and was left to be raised by a local tribe from the
-gap.
-
-Years later, Union City security drops by and abducts Robert, killing
-his tribe in the process; upon reaching the city the helicopter taking
-him there crashes with him escaping, high upon a tower block in the
-middle of the city.  He sets out to discover the truth about his past,
-and to seek vengeance for the killing of his tribe.")
-    (license (license:non-copyleft "file:///readme.txt"))))
 
 (define-public gnurobots
   (package

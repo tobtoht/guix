@@ -1190,14 +1190,14 @@ and high-availability (HA).")
 (define-public postgresql-15
   (package
     (name "postgresql")
-    (version "15.1")
+    (version "15.4")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://ftp.postgresql.org/pub/source/v"
                                   version "/postgresql-" version ".tar.bz2"))
               (sha256
                (base32
-                "1bi19sqmri569hyjvbk8grlws7f5dalsqz87wkgx1yjafcyz5zb4"))
+                "1yf8cfg9j2pfxh5lxfaq1ifbvrcvv2g5vjxnadk36ds4vi5mmv5s"))
               (patches (search-patches "postgresql-disable-resolve_symlinks.patch"))))
     (build-system gnu-build-system)
     (arguments
@@ -1265,27 +1265,27 @@ pictures, sounds, or video.")
 (define-public postgresql-13
   (package
     (inherit postgresql-14)
-    (version "13.9")
+    (version "13.12")
     (source (origin
               (inherit (package-source postgresql-14))
               (uri (string-append "https://ftp.postgresql.org/pub/source/v"
                                   version "/postgresql-" version ".tar.bz2"))
               (sha256
                (base32
-                "05d46dzkya6s0qbaxvksc5j12syb514q5lha6z9vx7z4lp06c6gg"))))))
+                "12r1kwjaclq2qn4qg3k6j0asrs4r0k0g1fkdpb3pnjsiwg7fv88d"))))))
 
 (define-public postgresql-11
   (package
     (inherit postgresql-13)
     (name "postgresql")
-    (version "11.18")
+    (version "11.21")
     (source (origin
               (inherit (package-source postgresql-13))
               (uri (string-append "https://ftp.postgresql.org/pub/source/v"
                                   version "/postgresql-" version ".tar.bz2"))
               (sha256
                (base32
-                "013m1x53qfxcry7l033ahhxjc3lflb7fj8fapk7qm49fqppj0kyj"))))
+                "0l7qrwzwyiy5dwg6j7nnd9mq245sycc4gcv6a6r7gpfmf5s87c07"))))
     (native-inputs
      (modify-inputs (package-native-inputs postgresql-13)
        (replace "docbook-xml" docbook-xml-4.2)))))
@@ -1850,8 +1850,8 @@ which uses SQL to describe changes.")
 
 (define-public sqlcrush
   ;; Unfortunately, there is no proper upstream release and may never be.
-  (let ((commit "b5f6868f189566a26eecc78d0f0659813c1aa98a")
-        (revision "1"))
+  (let ((commit "502a583e97a84efdeb48e59f1bfe403daa9681ee")
+        (revision "2"))
     (package
       (name "sqlcrush")
       (version (git-version "0.1.5" revision commit))
@@ -1863,7 +1863,7 @@ which uses SQL to describe changes.")
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "0x3wy40r93p0jv3nbwj9a77wa4ff697d13r0wffmm7q9h3mzsww8"))))
+                  "0x2q4m9ryw68kifalnm3x4bv9v2xrc2ffsiap8m9wnw6lf1h05la"))))
       (build-system python-build-system)
       (inputs
        (list python-cryptography python-psycopg2 python-pymysql
@@ -2777,25 +2777,26 @@ database.")
 (define-public perl-db-file
  (package
   (name "perl-db-file")
-  (version "1.856")
+  (version "1.858")
   (source
     (origin
       (method url-fetch)
       (uri (string-append "mirror://cpan/authors/id/P/PM/PMQS/DB_File-"
                           version ".tar.gz"))
       (sha256
-        (base32 "1ab6rm2b8lz0g3gc8k9y79gkgajyby0zpybkdg9mk4g35y9bmyfd"))))
+        (base32 "1xm7s2ag15498kp7g8r20gxk22ncz3b3hz4b3srqf7ypif3a5dyf"))))
   (build-system perl-build-system)
+  (arguments
+   (list
+    #:phases
+    #~(modify-phases %standard-phases
+        (add-before 'configure 'modify-config.in
+          (lambda _
+            (substitute* "config.in"
+              (("/usr/local/BerkeleyDB")
+               #$(this-package-input "bdb"))))))))
   (inputs (list bdb))
   (native-inputs (list perl-test-pod))
-  (arguments
-     `(#:phases (modify-phases %standard-phases
-                  (add-before
-                   'configure 'modify-config.in
-                   (lambda* (#:key inputs #:allow-other-keys)
-                     (substitute* "config.in"
-                       (("/usr/local/BerkeleyDB") (assoc-ref inputs "bdb")))
-                     #t)))))
   (home-page "https://metacpan.org/release/DB_File")
   (synopsis "Perl5 access to Berkeley DB version 1.x")
   (description
@@ -3802,13 +3803,13 @@ libraries with SQLALchemy.")
 (define-public python-psycopg2
   (package
     (name "python-psycopg2")
-    (version "2.9.5")
+    (version "2.9.6")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "psycopg2" version))
        (sha256
-        (base32 "0ni4kq6p7hbkm2qsky998q36q5gq5if4nwd8hwhjx5rsd0p6s955"))))
+        (base32 "04chl9f7v7k1zssa40pmk06jvpyqiss2lpjq50dq69nqix0mhlgi"))))
     (build-system python-build-system)
     (arguments
      ;; Tests would require a postgresql database "psycopg2_test"

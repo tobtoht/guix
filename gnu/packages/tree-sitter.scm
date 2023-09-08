@@ -5,6 +5,7 @@
 ;;; Copyright © 2022 Aleksandr Vityazev <avityazev@posteo.org>
 ;;; Copyright © 2023 Andrew Tropin <andrew@trop.in>
 ;;; Copyright © 2023 Nicolas Graves <ngraves@ngraves.fr>
+;;; Copyright © 2023 Zheng Junjie <873216071@qq.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -270,11 +271,14 @@ This package includes the @command{tree-sitter} command-line tool.")
           (grammar-directories '("."))
           (article "a")
           (inputs '())
+          (get-cleanup-snippet tree-sitter-delete-generated-files)
           (license license:expat))
   "Returns a package for Tree-sitter grammar.  NAME will be used with
 tree-sitter- prefix to generate package name and also for generating
 REPOSITORY-URL value if it's not specified explicitly, TEXT is a string which
-will be used in description and synopsis."
+will be used in description and synopsis. GET-CLEANUP-SNIPPET is a function,
+it recieves GRAMMAR-DIRECTORIES as an argument and should return a G-exp,
+which will be used as a snippet in origin."
   (let* ((multiple? (> (length grammar-directories) 1))
          (grammar-names (string-append text " grammar" (if multiple? "s" "")))
          (synopsis (string-append "Tree-sitter " grammar-names))
@@ -295,7 +299,7 @@ will be used in description and synopsis."
                 (file-name (git-file-name name version))
                 (sha256 (base32 hash))
                 (snippet
-                 (tree-sitter-delete-generated-files grammar-directories))))
+                 (get-cleanup-snippet grammar-directories))))
       (build-system tree-sitter-build-system)
       (arguments (list #:grammar-directories grammar-directories))
       (inputs inputs)
@@ -358,6 +362,13 @@ will be used in description and synopsis."
        #:commit commit
        #:inputs (list tree-sitter-c))))
 
+(define-public tree-sitter-cmake
+  (tree-sitter-grammar
+   "cmake" "CMake"
+   "1z49jdachwxwbzrrapskpi2kxq3ydihfj45ab9892gbamfij2zp5"
+   "0.4.1"
+   #:repository-url "https://github.com/uyha/tree-sitter-cmake"))
+
 (define-public tree-sitter-elixir
   ;; No tags at all, version in the source code is 0.19.0
   (let ((commit "b20eaa75565243c50be5e35e253d8beb58f45d56")
@@ -389,6 +400,13 @@ will be used in description and synopsis."
    "c-sharp" "C#"
    "054fmpf47cwh59gbg00sc0nl237ba4rnxi73miz39yqzcs87055r"
    "0.19.1"))
+
+(define-public tree-sitter-dockerfile
+  (tree-sitter-grammar
+   "dockerfile" "Dockerfile"
+   "0kf4c4xs5naj8lpcmr3pbdvwj526wl9p6zphxxpimbll7qv6qfnd"
+   "0.1.2"
+   #:repository-url "https://github.com/camdencheek/tree-sitter-dockerfile"))
 
 (define-public tree-sitter-elm
   (tree-sitter-grammar
@@ -528,6 +546,18 @@ will be used in description and synopsis."
    "0.7.1"
    #:repository-url "https://github.com/ikatyang/tree-sitter-markdown"))
 
+(define-public tree-sitter-meson
+  ;; tag 1.2 is Aug 24,2022  this commit is Feb 28,2023
+  (let ((commit "3d6dfbdb2432603bc84ca7dc009bb39ed9a8a7b1")
+        (revision "0"))
+    (tree-sitter-grammar
+     "meson" "Meson"
+     "1rn7r76h65d41354czyccm59d1j9nzybcrjvjh934lpr59qrw61m"
+     (git-version "1.2" revision commit)
+     #:repository-url "https://github.com/Decodetalkers/tree-sitter-meson"
+     #:commit commit
+     #:license license:expat)))
+
 (define-public tree-sitter-org
   ;; There are a lot of additions, the last tag was placed a while ago
   (let ((commit "081179c52b3e8175af62b9b91dc099d010c38770")
@@ -560,3 +590,20 @@ will be used in description and synopsis."
      (git-version "0.1.0" revision commit)
      #:repository-url "https://github.com/6cdh/tree-sitter-racket"
      #:commit commit)))
+
+(define-public tree-sitter-plantuml
+  ;; No tags
+  (let ((commit "bea443ef909484938cb0a9176ebda7b8a3d108f7")
+        (revision "0"))
+    (tree-sitter-grammar
+     "plantuml" "PlantUML"
+     "0swqq4blhlvvgrvsb0h4cjl3pnfmmdpfd5r5kg9rpdwk0sn98x3a"
+     (git-version "1.0.0" revision commit)
+     #:repository-url "https://github.com/Decodetalkers/tree_sitter_plantuml"
+     #:commit commit
+     #:get-cleanup-snippet
+     (lambda _
+       #~(begin
+           (use-modules (guix build utils))
+           (delete-file "binding.gyp")
+           (delete-file-recursively "bindings"))))))

@@ -1054,36 +1054,33 @@ It has a nice, simple s-expression based syntax.")
     (inputs (list guile-2.2))))
 
 (define-public guile-scheme-json-rpc
-  (let ((commit "45ae6890f6619286f5679f88c094c88127b54c4a")
-        (revision "0")
-        (version "0.2.11"))
-    (package
-      (name "guile-scheme-json-rpc")
-      (version (git-version version revision commit))
-      (source (origin
-                (method git-fetch)
-                (uri (git-reference
-                      (url "https://codeberg.org/rgherdt/scheme-json-rpc.git")
-                      (commit commit)))
-                (file-name (git-file-name name version))
-                (sha256
-                 (base32
-                  "0w4m8xx8yyj0rv0q57mjr8ja87l7yikscj33i3ck26wg7230ppa5"))))
-      (build-system gnu-build-system)
-      (arguments
-       `(#:phases (modify-phases %standard-phases
-                    (add-after 'unpack 'change-to-guile-dir
-                      (lambda _
-                        (chdir "guile"))))))
-      (inputs (list guile-3.0 guile-json-3))
-      (native-inputs (list pkg-config))
-      (synopsis "Library providing JSON-RPC capability in Scheme")
-      (description
-       "This library implements parts of the
+  (package
+    (name "guile-scheme-json-rpc")
+    (version "0.4.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://codeberg.org/rgherdt/scheme-json-rpc.git")
+                    (commit version)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0jsampz2ahs18z6yh9b5l3lkj8ycnavs0vg9sjngdj3w3zvrdcvm"))))
+    (build-system gnu-build-system)
+    (arguments
+     `(#:phases (modify-phases %standard-phases
+                  (add-after 'unpack 'change-to-guile-dir
+                    (lambda _
+                      (chdir "guile"))))))
+    (inputs (list guile-3.0 guile-srfi-145 guile-srfi-180))
+    (native-inputs (list pkg-config))
+    (synopsis "Library providing JSON-RPC capability for Guile Scheme")
+    (description
+     "This library implements parts of the
 @uref{https://www.jsonrpc.org/specification,JSON-RPC specification}, allowing
 for calling methods on remote servers by exchanging JSON objects.")
-      (home-page "https://codeberg.org/rgherdt/scheme-json-rpc/")
-      (license license:expat))))
+    (home-page "https://codeberg.org/rgherdt/scheme-json-rpc/")
+    (license license:expat)))
 
 (define-public guile-squee
   (let ((commit "9f2609563fc53466e46d37c8d8d2fbcfce67b2ba")
@@ -1557,7 +1554,7 @@ tracker's SOAP service, such as @url{https://bugs.gnu.org}.")
 (define-public guile-email
   (package
     (name "guile-email")
-    (version "0.3.0")
+    (version "0.3.1")
     (source
      (origin
        (method git-fetch)
@@ -1567,7 +1564,7 @@ tracker's SOAP service, such as @url{https://bugs.gnu.org}.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "0q98r460yr75gyxg06zrrixwazncd9nxl2pgr68mff2wf41f291h"))))
+         "09r50zbkyxvg6f7qn37yibasw69ajxls3sgdnhy9j70mbvcmx9c4"))))
     (build-system gnu-build-system)
     (native-inputs
      (list texinfo))
@@ -2505,14 +2502,14 @@ many readers as needed).")
 (define-public guile-ncurses
   (package
     (name "guile-ncurses")
-    (version "3.0")
+    (version "3.1")
     (source (origin
              (method url-fetch)
              (uri (string-append "mirror://gnu/guile-ncurses/guile-ncurses-"
                                  version ".tar.gz"))
              (sha256
               (base32
-               "038xbffalhymg26lvmzgf7ljilxz2f2zmqg5r5nfzbipfbprwjhf"))))
+               "0cypz1ikw66n8bc2klsnnaj1plpl22dwq6pwyc7dvffamz7fi2gf"))))
     (build-system gnu-build-system)
     (inputs (list ncurses guile-3.0))
     (native-inputs (list pkg-config))
@@ -2539,8 +2536,7 @@ many readers as needed).")
                (substitute* files
                  (("\"libguile-ncurses\"")
                   (format #f "\"~a/lib/guile/~a/libguile-ncurses\""
-                          out (target-guile-effective-version))))
-               #t))))))
+                          out (target-guile-effective-version))))))))))
     (home-page "https://www.gnu.org/software/guile-ncurses/")
     (synopsis "Guile bindings to ncurses")
     (description
@@ -2978,56 +2974,52 @@ is no support for parsing block and inline level HTML.")
     (inputs (list guile-2.0))))
 
 (define-public mcron
-  ;; Use the latest commits, as interesting changes haven't been released yet,
-  ;; such as improved logging.
-  (let ((revision "0")
-        (commit "5fd0ccde5a4cff70299999f988e6b5166584814d"))
-    (package
-      (name "mcron")
-      (version (git-version "1.2.1" revision commit))
-      (source (origin
-                (method git-fetch)
-                (uri (git-reference
-                      (url "https://git.savannah.gnu.org/git/mcron.git")
-                      (commit commit)))
-                (file-name (git-file-name name version))
-                (sha256
-                 (base32
-                  "0jl2w67a5hkphzssdzq3q4jcwv2b174b11d3w5i3khxq2vhzd6kk"))))
-      (build-system gnu-build-system)
-      (arguments
-       (list
-        #:phases #~(modify-phases %standard-phases
-                     (add-before 'check 'adjust-tests
-                       (lambda _
-                         (substitute* "tests/job-specifier.scm"
-                           ;; (getpw) fails with "entry not found" in the build
-                           ;; environment, so pass an argument.
-                           (("\\(getpw\\)")
-                            "(getpwnam (getuid))")
-                           ;; The build environment lacks an entry for root in
-                           ;; /etc/passwd.
-                           (("\\(getpw 0\\)")
-                            "(getpwnam \"nobody\")")
-                           ;; FIXME: Skip the 4 faulty tests (see above).
-                           (("\\(test-equal \"next-year\"" all)
-                            (string-append "(test-skip 4)\n" all))))))))
-      (native-inputs (list autoconf
-                           automake
-                           guile-3.0    ;for 'guild compile'
-                           help2man
-                           pkg-config
-                           tzdata-for-tests
-                           texinfo))
-      (inputs (list guile-3.0))
-      (home-page "https://www.gnu.org/software/mcron/")
-      (synopsis "Run jobs at scheduled times")
-      (description
-       "GNU Mcron is a complete replacement for Vixie cron.  It is used to run
+  (package
+    (name "mcron")
+    (version "1.2.3")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://git.savannah.gnu.org/git/mcron.git")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "07gqwbjfsgf16ff624hkav0qhl10dv579y10fxas2kbjavqm4yx5"))))
+    (build-system gnu-build-system)
+    (arguments
+     (list
+      #:phases #~(modify-phases %standard-phases
+                   (add-before 'check 'adjust-tests
+                     (lambda _
+                       (substitute* "tests/job-specifier.scm"
+                         ;; (getpw) fails with "entry not found" in the build
+                         ;; environment, so pass an argument.
+                         (("\\(getpw\\)")
+                          "(getpwnam (getuid))")
+                         ;; The build environment lacks an entry for root in
+                         ;; /etc/passwd.
+                         (("\\(getpw 0\\)")
+                          "(getpwnam \"nobody\")")
+                         ;; FIXME: Skip the 4 faulty tests (see above).
+                         (("\\(test-equal \"next-year\"" all)
+                          (string-append "(test-skip 4)\n" all))))))))
+    (native-inputs (list autoconf
+                         automake
+                         guile-3.0    ;for 'guild compile'
+                         help2man
+                         pkg-config
+                         tzdata-for-tests
+                         texinfo))
+    (inputs (list guile-3.0))
+    (home-page "https://www.gnu.org/software/mcron/")
+    (synopsis "Run jobs at scheduled times")
+    (description
+     "GNU Mcron is a complete replacement for Vixie cron.  It is used to run
 tasks on a schedule, such as every hour or every Monday.  Mcron is written in
 Guile, so its configuration can be written in Scheme; the original cron
 format is also supported.")
-      (license license:gpl3+))))
+    (license license:gpl3+)))
 
 (define-public guile-picture-language
   (let ((commit "a1322bf11945465241ca5b742a70893f24156d12")
@@ -3050,7 +3042,7 @@ format is also supported.")
       (propagated-inputs
        (list guile-cairo guile-rsvg))
       (native-inputs
-       (list autoconf automake librsvg pkg-config texinfo))
+       (list autoconf automake (librsvg-for-system) pkg-config texinfo))
       (home-page "https://git.elephly.net/software/guile-picture-language.git")
       (synopsis "Picture language for Guile")
       (description
@@ -3848,7 +3840,7 @@ debugging code.")
 (define-public guile-png
   (package
     (name "guile-png")
-    (version "0.6.0")
+    (version "0.7.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -3857,7 +3849,7 @@ debugging code.")
               (file-name (string-append name "-" version "-checkout"))
               (sha256
                (base32
-                "0i0q2h4kfp1mj5m3wnz2hk6z895001j38s5vkbhkdxf05cjvwkky"))))
+                "0nkim662lb48y8n5hik8rrj76600v2inwaxwnfpdny7h2j0yq1wm"))))
     (build-system gnu-build-system)
     (arguments
      `(#:make-flags '("GUILE_AUTO_COMPILE=0"))) ;to prevent guild warnings
@@ -4044,12 +4036,13 @@ feature-set, fully programmable in Guile Scheme.")
     (inputs
      (list vigra vigra-c guile-2.2))
     (native-inputs
-     `(("texlive" ,(texlive-updmap.cfg (list texlive-booktabs
-                                        texlive-lm
-                                        texlive-siunitx
-                                        texlive-standalone
-                                        texlive-xcolor
-                                        texlive-fonts-iwona)))
+     `(("texlive" ,(texlive-updmap.cfg
+                    (list texlive-booktabs
+                          texlive-iwona
+                          texlive-lm
+                          texlive-siunitx
+                          texlive-standalone
+                          texlive-xcolor)))
        ("pkg-config" ,pkg-config)))
     (propagated-inputs
      `(("guile-lib" ,guile2.2-lib)))
@@ -5348,7 +5341,7 @@ GitLab instance.")
 (define-public guile-smc
   (package
     (name "guile-smc")
-    (version "0.6.0")
+    (version "0.6.2")
     (source
      (origin
        (method git-fetch)
@@ -5358,7 +5351,7 @@ GitLab instance.")
        (file-name (string-append name "-" version))
        (sha256
         (base32
-         "15b8m30kjl46p44xjd65vv1bv60hy130zfskkcsrj10fzahyk9zd"))))
+         "11083lj048ab5zsdgwpkshxi8v5nfdr7kvmmslszbi7lq2pwfqig"))))
     (build-system gnu-build-system)
     (arguments
      `(#:make-flags '("GUILE_AUTO_COMPILE=0")     ;to prevent guild warnings

@@ -3,7 +3,7 @@
 ;;; Copyright © 2015 Federico Beffa <beffa@fbengineering.ch>
 ;;; Copyright © 2016, 2018, 2020-2023 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016 David Thompson <davet@gnu.org>
-;;; Copyright © 2016, 2017, 2018, 2019, 2021 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2016-2019, 2021, 2023 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2016, 2017, 2018 Theodoros Foradis <theodoros@foradis.org>
 ;;; Copyright © 2017 Julien Lepiller <julien@lepiller.eu>
 ;;; Copyright © 2018–2021 Tobias Geerinckx-Rice <me@tobias.gr>
@@ -37,6 +37,7 @@
 ;;; Copyright © 2022 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2022, 2023 Felix Gruber <felgru@posteo.net>
 ;;; Copyright © 2023 Theofilos Pechlivanis <theofilos.pechlivanis@gmail.com>
+;;; Copyright © 2023 Sharlatan Hellseher <sharlatanus@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -54,24 +55,24 @@
 ;;; along with GNU Guix.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (gnu packages engineering)
-  #:use-module (guix packages)
-  #:use-module (guix download)
-  #:use-module (guix gexp)
-  #:use-module (guix git-download)
-  #:use-module (guix svn-download)
-  #:use-module (guix monads)
-  #:use-module (guix store)
-  #:use-module (guix utils)
-  #:use-module ((srfi srfi-1) #:hide (zip))
   #:use-module ((guix licenses) #:prefix license:)
   #:use-module (guix build-system ant)
   #:use-module (guix build-system cmake)
+  #:use-module (guix build-system copy)
   #:use-module (guix build-system emacs)
   #:use-module (guix build-system gnu)
   #:use-module (guix build-system meson)
   #:use-module (guix build-system pyproject)
   #:use-module (guix build-system python)
   #:use-module (guix build-system qt)
+  #:use-module (guix download)
+  #:use-module (guix gexp)
+  #:use-module (guix git-download)
+  #:use-module (guix monads)
+  #:use-module (guix packages)
+  #:use-module (guix store)
+  #:use-module (guix svn-download)
+  #:use-module (guix utils)
   #:use-module (gnu packages)
   #:use-module (gnu packages algebra)
   #:use-module (gnu packages autotools)
@@ -84,12 +85,10 @@
   #:use-module (gnu packages check)
   #:use-module (gnu packages cmake)
   #:use-module (gnu packages code)
-  #:use-module (gnu packages commencement)
   #:use-module (gnu packages compression)
   #:use-module (gnu packages cpp)
   #:use-module (gnu packages curl)
   #:use-module (gnu packages databases)
-  #:use-module (gnu packages gawk)
   #:use-module (gnu packages dejagnu)
   #:use-module (gnu packages digest)
   #:use-module (gnu packages docbook)
@@ -99,6 +98,7 @@
   #:use-module (gnu packages fontutils)
   #:use-module (gnu packages fpga)
   #:use-module (gnu packages freedesktop)
+  #:use-module (gnu packages gawk)
   #:use-module (gnu packages gcc)
   #:use-module (gnu packages gd)
   #:use-module (gnu packages geo)
@@ -114,19 +114,21 @@
   #:use-module (gnu packages gtk)
   #:use-module (gnu packages guile)
   #:use-module (gnu packages image)
-  #:use-module (gnu packages image-processing)
   #:use-module (gnu packages imagemagick)
+  #:use-module (gnu packages image-processing)
   #:use-module (gnu packages kde-frameworks)
   #:use-module (gnu packages libevent)
   #:use-module (gnu packages libusb)
   #:use-module (gnu packages linux)               ;FIXME: for pcb
   #:use-module (gnu packages lisp)
   #:use-module (gnu packages m4)
-  #:use-module (gnu packages maths)
   #:use-module (gnu packages man)
-  #:use-module (gnu packages multiprecision)
+  #:use-module (gnu packages maths)
   #:use-module (gnu packages mpi)
+  #:use-module (gnu packages multiprecision)
   #:use-module (gnu packages ncurses)
+  #:use-module (gnu packages openkinect)
+  #:use-module (gnu packages openkinect)
   #:use-module (gnu packages parallel)
   #:use-module (gnu packages pcre)
   #:use-module (gnu packages perl)
@@ -150,19 +152,20 @@
   #:use-module (gnu packages swig)
   #:use-module (gnu packages tbb)
   #:use-module (gnu packages tcl)
+  #:use-module (gnu packages tex)
   #:use-module (gnu packages texinfo)
   #:use-module (gnu packages text-editors)
-  #:use-module (gnu packages tree-sitter)
+  #:use-module (gnu packages time)
   #:use-module (gnu packages tls)
-  #:use-module (gnu packages tex)
+  #:use-module (gnu packages tree-sitter)
   #:use-module (gnu packages version-control)
   #:use-module (gnu packages web)
   #:use-module (gnu packages wxwidgets)
-  #:use-module (gnu packages xml)
-  #:use-module (gnu packages xiph)
-  #:use-module (gnu packages openkinect)
   #:use-module (gnu packages xdisorg)
-  #:use-module (gnu packages xorg))
+  #:use-module (gnu packages xiph)
+  #:use-module (gnu packages xml)
+  #:use-module (gnu packages xorg)
+  #:use-module ((srfi srfi-1) #:hide (zip)))
 
 (define-public librecad
   (package
@@ -575,10 +578,11 @@ featuring various improvements and bug fixes.")))
                                        "fastcap-mulGlobal.patch"))))
     (build-system gnu-build-system)
     (native-inputs
-     ;; FIXME: with texlive-tiny citation references are rendered as question
-     ;; marks.  During the build warnings like these are printed:
-     ;; LaTeX Warning: Citation `nabors91' on page 2 undefined on input line 3.
-     `(("texlive" ,(texlive-updmap.cfg (list texlive-amsfonts)))
+     ;; FIXME: with (texlive-updmap.cfg) citation references are rendered as
+     ;; question marks.  During the build warnings like these are printed:
+     ;; LaTeX Warning: Citation `nabors91' on page 2 undefined on input line
+     ;; 3.
+     `(("texlive" ,(texlive-updmap.cfg))
        ("ghostscript" ,ghostscript)))
     (arguments
      `(#:make-flags '("CC=gcc" "RM=rm" "SHELL=sh" "all")
@@ -711,58 +715,58 @@ multipole-accelerated algorithm.")
   (package
     (name "fritzing")
     (version "0.9.6")
-    (source (origin
-              (method git-fetch)
-              (uri (git-reference
-                    (url "https://github.com/fritzing/fritzing-app")
-                    (commit version)))
-              (file-name (git-file-name name version))
-              (sha256
-               (base32
-                "083nz7vj7a334575smjry6257535h68gglh8a381xxa36dw96aqs"))))
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/fritzing/fritzing-app")
+             (commit version)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "083nz7vj7a334575smjry6257535h68gglh8a381xxa36dw96aqs"))))
     (build-system gnu-build-system)
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (replace 'configure
-           (lambda* (#:key inputs outputs #:allow-other-keys)
-             (copy-recursively (assoc-ref inputs "fritzing-parts-db")
-                               "parts")
-             ;; Use system libgit2 and boost.
-             (substitute* "phoenix.pro"
-               (("^LIBGIT_STATIC.*")
-                (string-append "LIBGIT2INCLUDE=" (assoc-ref inputs "libgit2") "/include\n"
-                               "LIBGIT2LIB=" (assoc-ref inputs "libgit2") "/lib\n"
-                               "INCLUDEPATH += $$LIBGIT2INCLUDE\n"
-                               "LIBS += -L$$LIBGIT2LIB -lgit2\n"))
-               (("^.*pri/libgit2detect.pri.") ""))
-             ;; Trick the internal mechanism to load the parts
-             (substitute* "src/version/partschecker.cpp"
-               ((".*git_libgit2_init.*")
-                "return \"083nz7vj7a334575smjry6257535h68gglh8a381xxa36dw96aqs\";"))
-
-             (let ((out (assoc-ref outputs "out")))
-               (invoke "qmake"
-                       (string-append "QMAKE_LFLAGS_RPATH=-Wl,-rpath," out "/lib")
-                       (string-append "PREFIX=" out)
-                       "phoenix.pro")))))))
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (replace 'configure
+            (lambda _
+              ;; Integrate parts library
+              (copy-recursively
+               (string-append #$(this-package-native-input "fritzing-parts")
+                              "/share/library")
+               "parts")
+              ;; Use system libgit2 and boost.
+              (substitute* "phoenix.pro"
+                (("^LIBGIT_STATIC.*")
+                 (string-append
+                  "LIBGIT2INCLUDE=" #$(this-package-input "libgit2") "/include\n"
+                  "LIBGIT2LIB=" #$(this-package-input "libgit2") "/lib\n"
+                  "INCLUDEPATH += $$LIBGIT2INCLUDE\n"
+                  "LIBS += -L$$LIBGIT2LIB -lgit2\n"))
+                (("^.*pri/libgit2detect.pri.") ""))
+              ;; Trick the internal mechanism to load the parts
+              (substitute* "src/version/partschecker.cpp"
+                ((".*git_libgit2_init.*")
+                 "return \"083nz7vj7a334575smjry6257535h68gglh8a381xxa36dw96aqs\";"))
+              ;; XXX: NixOS and Gento have a phase where they generate part
+              ;; SQLite library, have proper investigation if it's required in
+              ;; Guix as well.
+              (invoke "qmake"
+                      (string-append "QMAKE_LFLAGS_RPATH=-Wl,-rpath," #$output "/lib")
+                      (string-append "PREFIX=" #$output)
+                      "phoenix.pro"))))))
+    (native-inputs
+     (list fritzing-parts))
     (inputs
-     `(("qtbase" ,qtbase-5)
-       ("qtserialport" ,qtserialport)
-       ("qtsvg-5" ,qtsvg-5)
-       ("libgit2" ,libgit2)
-       ("boost" ,boost)
-       ("zlib" ,zlib)
-       ("fritzing-parts-db"
-        ,(origin
-           (method git-fetch)
-           (uri (git-reference
-                 (url "https://github.com/fritzing/fritzing-parts")
-                 (commit (string-append "release_" version))))
-           (file-name (git-file-name "fritzing-parts" version))
-           (sha256
-            (base32
-             "0wsvn57v6n0ygnhk2my94rrfzb962z1cj4d1xmp1farwck3811h6"))))))
+     (list boost
+           libgit2
+           qtbase-5
+           ;; TODO: Needs to be renamed to qtserialport-5. when version 6 is
+           ;; packed.
+           qtserialport
+           qtsvg-5
+           zlib))
     (home-page "https://fritzing.org")
     (synopsis "Electronic circuit design")
     (description
@@ -775,6 +779,43 @@ ready for production.")
     ;; Documentation and parts are released under CC-BY-SA 3.0; source code is
     ;; released under GPLv3+.
     (license (list license:gpl3+ license:cc-by-sa3.0))))
+
+(define-public fritzing-parts
+  ;; XXX: Release of the parts stopped in 2016 and it looks like develop
+  ;; branch has latest changes comparing to other branches.
+  (let ((commit "d61d63de9294343b1b6e86f149e78e4b1d3a0009")
+        (revision "0"))
+    (package
+      (name "fritzing-parts")
+      (version (git-version "0.9.6" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/fritzing/fritzing-parts")
+               (commit commit)))
+         (file-name (git-file-name "fritzing-parts" version))
+         (sha256
+          (base32 "0g39ja1aqw5qx8alf61m6zcy6y78j9ky556x6x1cnd6g7kkzd861"))))
+      (build-system copy-build-system)
+      (arguments
+       (list
+        #:install-plan
+        #~'(("." "share/library/"
+             #:exclude-regexp (".github.*"
+                               ".gitignore"
+                               "CONTRIBUTING.md"
+                               "LICENSE.txt"
+                               "README.md")))
+        #:modules '(((guix build gnu-build-system) #:prefix gnu:)
+                    (guix build copy-build-system)
+                    (guix build utils)
+                    (ice-9 match))))
+      (home-page "https://fritzing.org")
+      (synopsis "Electronic components (parts library) for use in the Fritzing app")
+      (description "This package contains all part definitions that are
+required for Fritzing app.")
+      (license license:cc-by-sa3.0))))
 
 (define-public qelectrotech
   (package
@@ -1048,7 +1089,7 @@ Emacs).")
 (define-public kicad
   (package
     (name "kicad")
-    (version "7.0.6")
+    (version "7.0.7")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -1056,7 +1097,7 @@ Emacs).")
                     (commit version)))
               (sha256
                (base32
-                "1bifg73id0grn37a4n5wpq440z9xz14q0fvkva5vajx0xfd34llv"))
+                "1xbzf29rhqh6kl0vggdn2dblgp927096fc1lr3y4yw63b8n0qq50"))
               (file-name (git-file-name name version))))
     (build-system cmake-build-system)
     (arguments
@@ -1156,7 +1197,7 @@ electrical diagrams), gerbview (viewing Gerber files) and others.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0byvm25jw108h808g5zdjq14gx4xxd87pvlbczd07c3rx6nmzl08"))))
+                "00f51rcnki08x2jkyla5vmqx7nhck3cyz86wiy0qkmc8klb1a6ba"))))
     (build-system cmake-build-system)
     (arguments
      `(#:configure-flags (list "-DBUILD_FORMATS=html")
@@ -1190,7 +1231,7 @@ electrical diagrams), gerbview (viewing Gerber files) and others.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0p60dvig7xx8svzsgp871r0aix2m95bmzg3snz372nmgnza2nnvf"))))
+                "1wr754m4ykidds3i14gqhvyrj3mbkchp2hkfnr0rjsdaqf4zmqdf"))))
     (build-system cmake-build-system)
     (arguments
      `(#:tests? #f))                    ; no tests exist
@@ -1219,7 +1260,7 @@ libraries.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0fqnviaxsai0xwyq8xq5ks26j4vd390ns6h6lr0fx2ikv1ghaml5"))))
+                "0xnnivlqgcyaz9qay73p43jnvmvshp2b3fbh3569j7rmgi5pn8x0"))))
     (synopsis "Official KiCad footprint libraries")
     (description "This package contains the official KiCad footprint libraries.")))
 
@@ -1236,7 +1277,7 @@ libraries.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0dmssyhqd94d9wj8w7g7xjan560b2rwcs540sgl0rc77cw2jify8"))))
+                "141r5wd8s1bgyf77kvb9q14cpsiwwv4zmfzwbgcd42rflsk2lcbc"))))
     (synopsis "Official KiCad 3D model libraries")
     (description "This package contains the official KiCad 3D model libraries.")))
 
@@ -1516,6 +1557,27 @@ send break and throttle transmission speed.")
     (home-page "https://github.com/wentasah/sterm")
     (license license:gpl3+)))
 
+(define-public libmodbus
+  (package
+    (name "libmodbus")
+    (version "3.1.10")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/stephane/libmodbus")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0nbpk1n56kclab8fl32dxi46v2bwax3gfk1zkc796srm7vj42sbv"))))
+    (build-system gnu-build-system)
+    (native-inputs (list autoconf automake libtool))
+    (synopsis "Library for the Modbus protocol")
+    (description "@code{libmodbus} is a library to send/receive data with a
+device which respects the Modbus protocol.  This library can use a serial port
+or an Ethernet connection.")
+    (home-page "https://libmodbus.org/")
+    (license license:lgpl2.1+)))
 (define-public harminv
   (package
     (name "harminv")
@@ -1933,7 +1995,7 @@ high-performance parallel differential evolution (DE) optimization algorithm.")
   ;; See <https://debbugs.gnu.org/cgi/bugreport.cgi?bug=27344#236>.
   (package
     (name "libngspice")
-    (version "40")
+    (version "41")
     (source
      (origin
        (method url-fetch)
@@ -1944,7 +2006,7 @@ high-performance parallel differential evolution (DE) optimization algorithm.")
                             "old-releases/" version
                             "/ngspice-" version ".tar.gz")))
        (sha256
-        (base32 "03c9irc44msdpqhbn2fhvb4g0sry8a2qgxl4mbbf557mq1xwl0z3"))))
+        (base32 "1i78im03kx6vp5yml0fiwvqnic8qhczl1893n8zc6l1gblwikqhw"))))
     (build-system gnu-build-system)
     (arguments
      `(;; No tests for libngspice exist.
@@ -2240,7 +2302,11 @@ parallel computing platforms.  It also supports serial execution.")
              #t)))))
     (inputs
      (list coreutils
-           gcc-toolchain
+
+           ;; Lazily resolve the gcc-toolchain to avoid a circular dependency.
+           (module-ref (resolve-interface '(gnu packages commencement))
+                       'gcc-toolchain)
+
            guile-2.2
            perl
            pkg-config
@@ -2404,7 +2470,7 @@ simulation.")
      (origin
        (method git-fetch)
        (uri (git-reference
-             (url "https://github.com/radareorg/cutter")
+             (url "https://github.com/rizinorg/cutter")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
@@ -2434,7 +2500,7 @@ simulation.")
            ;; Depends on radare2 4.5.1 officially, builds and works fine with
            ;; radare2 5.0.0 but fails to build with radare2 5.1.1.
            radare2-for-cutter))
-    (home-page "https://github.com/radareorg/cutter")
+    (home-page "https://cutter.re")
     (synopsis "GUI for radare2 reverse engineering framework")
     (description "Cutter is a GUI for radare2 reverse engineering framework.
 Its goal is making an advanced andcustomizable reverse-engineering platform
@@ -2541,7 +2607,7 @@ measurement devices and test equipment via GPIB, RS232, Ethernet or USB.")
 (define-public python-scikit-rf
   (package
     (name "python-scikit-rf")
-    (version "0.27.1")
+    (version "0.28.0")
     (source (origin
               (method git-fetch) ;PyPI misses some files required for tests
               (uri (git-reference
@@ -2549,7 +2615,7 @@ measurement devices and test equipment via GPIB, RS232, Ethernet or USB.")
                     (commit (string-append "v" version))))
               (sha256
                (base32
-                "1rh2hq050439azlglqb54cy3jc1ir5y1ps55as4d5j619a7mq9x0"))
+                "11pxl8q356f6q4cvadasg52js3k446l87hwmc87b1n9cy8sxcfvi"))
               (file-name (git-file-name name version))))
     (build-system pyproject-build-system)
     (propagated-inputs (list python-matplotlib
@@ -2685,7 +2751,7 @@ comments.")))
 (define-public freecad
   (package
     (name "freecad")
-    (version "0.20.2")
+    (version "0.21.1")
     (source
      (origin
        (method git-fetch)
@@ -2694,7 +2760,7 @@ comments.")))
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0wsfz2jqfhmqshyr1n4qxcc3c6a96gyll4h34vn2zzvvcnncn9rb"))))
+        (base32 "0qwh6b1s432j5piwgfkphvz0slmxf0m8m8pdr3ny9zna9mghz42k"))))
     (build-system qt-build-system)
     (native-inputs
      (list doxygen
@@ -2708,6 +2774,7 @@ comments.")))
            coin3D
            double-conversion
            eigen
+           fmt
            fontconfig
            freetype
            gl2ps
@@ -3067,13 +3134,13 @@ program that can perform mesh processing tasks in batch mode, without a GUI.")
 (define-public poke
   (package
     (name "poke")
-    (version "3.2")
+    (version "3.3")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://gnu/poke/poke-" version
                                   ".tar.gz"))
               (sha256
-               (base32 "15qd9z3wv7jrdlh6f9hwgni54ssdz8hzrn4lxiacwv1sslfmb3km"))
+               (base32 "0vlm9xcr7rrfli2x4hi2q41nh8vjd2izpz4zd0xwhqshx2flb000"))
               (modules '((guix build utils)))
               (snippet
                '(begin
@@ -3177,7 +3244,7 @@ data structures and to operate on them.")
           gerbv
           glibmm
           gtkmm-2
-          librsvg))
+          (librsvg-for-system)))
    (native-inputs
     (list autoconf automake libtool pkg-config))
    (home-page "https://github.com/pcb2gcode/pcb2gcode")
@@ -4168,7 +4235,7 @@ form, numpad.
 (define-public rizin
   (package
     (name "rizin")
-    (version "0.5.2")
+    (version "0.6.1")
     (source (origin
               (method url-fetch)
               (uri (string-append
@@ -4176,7 +4243,7 @@ form, numpad.
                     version "/rizin-src-v" version ".tar.xz"))
               (sha256
                (base32
-                "18zca3iwdif200wiivm065fs0a5g520q6380205cijca7ky81avi"))))
+                "14bcmjx64pgi9zj4zb7yppx69l1ykjwgf2q41s5672m7z354f1kn"))))
     (build-system meson-build-system)
     (arguments
      (list
@@ -4204,13 +4271,10 @@ form, numpad.
             (lambda _
               ;; Skip integration tests, which require prebuilt binaries at:
               ;; <https://github.com/rizinorg/rizin-testbins>.
-              ;; And 2 of them are failing, reported upstream:
-              ;; <https://github.com/rizinorg/rizin/issues/2905>.
               (substitute* "test/meson.build"
                 (("subdir\\('integration'\\)") ""))
               ;;; Skip failing tests.
               (substitute* "test/unit/meson.build"
-                (("'analysis_var',\n") "")
                 (("'bin_mach0',\n") "")
                 (("'hash',\n") "")))))))
     (native-inputs (list pkg-config))
@@ -4228,3 +4292,31 @@ more.")
     ;; GPL-2.0-only, GPL-2.0-or-later, GPL-3.0-or-later, LGPL-2.0-or-later,
     ;; LGPL-2.1-only, LGPL-2.1-or-later, LGPL-3.0-only, MIT, NCSA.
     (license license:gpl3+)))
+
+(define-public python-asyncua
+  (package
+    (name "python-asyncua")
+    (version "1.0.3")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                     (url "https://github.com/FreeOpcUa/opcua-asyncio.git")
+                     (commit (string-append "v" version))
+                     (recursive? #t)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0bazk3k2dyzlrh7yxs4pc76m5ysm7riia3ncg7as3xr4y9dy29bx"))))
+    (build-system pyproject-build-system)
+    (native-inputs
+     (list python-pytest-asyncio python-pytest-runner python-asynctest
+           python-pytest-mock))
+    (propagated-inputs
+     (list python-aiofiles python-aiosqlite python-cryptography
+           python-importlib-metadata python-dateutil python-pytz
+           python-sortedcontainers))
+    (synopsis "OPC UA / IEC 62541 client and server library")
+    (description "This package provides an OPC UA / IEC 62541 client and
+server for Python and pypy3.")
+    (home-page "https://freeopcua.github.io/")
+    (license license:lgpl3+)))

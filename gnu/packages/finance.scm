@@ -288,14 +288,14 @@ Accounting.")
 (define-public homebank
   (package
     (name "homebank")
-    (version "5.6.5")
+    (version "5.6.6")
     (source (origin
               (method url-fetch)
               (uri (string-append "http://homebank.free.fr/public/sources/"
                                   "homebank-" version ".tar.gz"))
               (sha256
                (base32
-                "1a1cdldvs0xc30xkxkap72gafss90hmglakad5r8aykxz3y4sjdm"))))
+                "03nwcpxmsw82gnhy1dialky1d9mfb2jqdzlgc79bxwhlhpqwsvv5"))))
     (build-system glib-or-gtk-build-system)
     (native-inputs
      (list pkg-config intltool))
@@ -547,7 +547,7 @@ do so.")
 (define-public electrum
   (package
     (name "electrum")
-    (version "4.4.5")
+    (version "4.4.6")
     (source
      (origin
        (method url-fetch)
@@ -555,7 +555,7 @@ do so.")
                            version "/Electrum-"
                            version ".tar.gz"))
        (sha256
-        (base32 "1gifnb927b51947psbj58c7kdsgncn3d9j7rpk5mls678yf1qd5d"))
+        (base32 "1f0hb8xmqv1j9pf82xpyvxnn2dzmi93rhf0sh0iqakja2pbl4707"))
        (modules '((guix build utils)))
        (snippet
         '(begin
@@ -2073,7 +2073,7 @@ trading, and risk management in real-life.")
      (list gsl gtk+ ncurses))
     (native-inputs
      (list pkg-config texinfo
-           (texlive-updmap.cfg (list texlive-epsf texlive-tex-texinfo))))
+           (texlive-updmap.cfg (list texlive-epsf texlive-texinfo))))
     (home-page "https://anthonybradford.github.io/optionmatrix/")
     (synopsis "Financial derivative calculator")
     (description
@@ -2237,7 +2237,7 @@ mining.")
 (define-public p2pool
   (package
     (name "p2pool")
-    (version "3.5")
+    (version "3.6.2")
     (source
      (origin
        (method git-fetch)
@@ -2246,7 +2246,7 @@ mining.")
              (commit (string-append "v" version))
              (recursive? #t)))
        (file-name (git-file-name name version))
-       (sha256 (base32 "1brv3lksajnmpf7g01jbx76nax6vlx8231sxb0s33yf76yc481xb"))
+       (sha256 (base32 "0lki6yrzmmpd5hj55m6s71y1cr81lbk1f3h9h70gmm4p4qjrv5f2"))
        (modules '((guix build utils)))
        (snippet
         #~(for-each delete-file-recursively

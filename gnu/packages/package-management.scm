@@ -22,6 +22,7 @@
 ;;; Copyright © 2021 John Kehayias <john.kehayias@protonmail.com>
 ;;; Copyright © 2022, 2023 Zhu Zihao <all_but_last@163.com>
 ;;; Copyright © 2023 jgart <jgart@dismail.de>
+;;; Copyright © 2023 Mădălin Ionel Patrașcu <madalinionel.patrascu@mdc-berlin.de>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -173,8 +174,8 @@
   ;; Note: the 'update-guix-package.scm' script expects this definition to
   ;; start precisely like this.
   (let ((version "1.4.0")
-        (commit "44bbfc24e4bcc48d0e3343cd3d83452721af8c36")
-        (revision 7))
+        (commit "4dfdd822102690b5687acf28365ab707b68d9476")
+        (revision 10))
     (package
       (name "guix")
 
@@ -190,7 +191,7 @@
                       (commit commit)))
                 (sha256
                  (base32
-                  "08gq04pphapr3i0gzdilp8l87rpxlh2p768qrn1fw92fmw727xf7"))
+                  "1p21gz2lr7iqvma1m83k2r04w201rzvk31d5kfn2qkr9l0gds4cx"))
                 (file-name (string-append "guix-" version "-checkout"))))
       (build-system gnu-build-system)
       (arguments
@@ -261,6 +262,46 @@ $(prefix)/etc/openrc\n")))
                             (lambda _
                               (substitute* "tests/gexp.scm"
                                 (("2\\.0") "3.0")))))
+                        '())
+                    ,@(if (system-hurd?)
+                          `((add-after 'unpack 'disable-tests/hurd
+                              (lambda _
+                                (substitute* "Makefile.am"
+                                  (("tests/derivations.scm") "")
+                                  (("tests/grafts.scm") "")
+                                  (("tests/graph.scm") "")
+                                  (("tests/lint.scm") "")
+                                  (("tests/nar.scm") "")
+                                  (("tests/offload.scm") "")
+                                  (("tests/pack.scm") "")
+                                  (("tests/packages.scm") "")
+                                  (("tests/processes.scm") "")
+                                  (("tests/publish.scm") "")
+                                  (("tests/pypi.scm") "")
+                                  (("tests/size.scm") "")
+                                  (("tests/store.scm") "")
+                                  (("tests/substitute.scm") "")
+                                  (("tests/syscalls.scm") "")
+                                  (("tests/union.scm") "")
+                                  (("tests/guix-build.sh") "")
+                                  (("tests/guix-build-branch.sh") "")
+                                  (("tests/guix-hash.sh") "")
+                                  (("tests/guix-locate.sh") "")
+                                  (("tests/guix-pack.sh") "")
+                                  (("tests/guix-pack-relocatable.sh") "")
+                                  (("tests/guix-package-aliases.sh") "")
+                                  (("tests/guix-package-net.sh") "")
+                                  (("tests/guix-home.sh") "")
+                                  (("tests/guix-archive.sh") "")
+                                  (("tests/guix-environment.sh") "")
+                                  (("tests/guix-package.sh") "")
+                                  (("tests/guix-refresh.sh") "")
+                                  (("tests/guix-shell.sh") "")
+                                  (("tests/guix-shell-export-manifest.sh") "")
+                                  (("tests/guix-system.sh") "")
+                                  (("tests/guix-graph.sh") "")
+                                  (("tests/guix-gc.sh") "")
+                                  (("tests/guix-daemon.sh") "")))))
                         '())
                     (add-before 'build 'use-host-compressors
                       (lambda* (#:key inputs target #:allow-other-keys)
@@ -1141,6 +1182,7 @@ extracting, creating, and converting between formats.")
            python-boto3
            python-conda-package-handling
            python-cytoolz
+           python-mock
            python-pluggy
            python-pycosat
            python-pytest
@@ -1169,17 +1211,16 @@ written entirely in Python.")
 (define-public conan
   (package
     (name "conan")
-    (version "2.0.2")
+    (version "2.0.9")
     (source
      (origin
-       (method git-fetch)               ;no tests in PyPI archive
+       (method git-fetch)               ; no tests in PyPI archive
        (uri (git-reference
              (url "https://github.com/conan-io/conan")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32
-         "1y4qmqnw3s8xv64lgp388qpj9vqharyfqi5s8dxvgsns6cafv7lf"))))
+        (base32 "1ykfj7c3i0b57s7ql3p2lawxdzd2cn36f3k8p64lyzla8rwv4xdx"))))
     (build-system python-build-system)
     (arguments
      (list
@@ -1299,7 +1340,7 @@ tools_locations = {
            python-pluginbase
            python-pygments
            python-pyjwt
-           python-pyyaml-5
+           python-pyyaml
            python-requests
            python-six
            python-tqdm
@@ -1409,8 +1450,8 @@ environments.")
                   "0k9zkdyyzir3fvlbcfcqy17k28b51i20rpbjwlx2i1mwd2pw9cxc")))))))
 
 (define-public guix-build-coordinator
-  (let ((commit "c44d485bba42034804beb47afc23005c4e73ea96")
-        (revision "85"))
+  (let ((commit "cbded42c284cca4ecaaebbf0a666cf89efc465a7")
+        (revision "88"))
     (package
       (name "guix-build-coordinator")
       (version (git-version "0" revision commit))
@@ -1421,75 +1462,74 @@ environments.")
                       (commit commit)))
                 (sha256
                  (base32
-                  "1y69yrmmifdp55l5c5b8iiq0llwpggxmq6a4233cdll3bhfxaicl"))
+                  "1z2wdf5h4dxq9g7a6j7nvmrsqcibrfm8nmkakqgz7ipcxyk0vzjx"))
                 (file-name (string-append name "-" version "-checkout"))))
       (build-system gnu-build-system)
       (arguments
-       `(#:modules (((guix build guile-build-system)
+       (list
+        #:modules `(((guix build guile-build-system)
                      #:select (target-guile-effective-version))
                     ,@%gnu-build-system-modules)
-         #:imported-modules ((guix build guile-build-system)
+        #:imported-modules `((guix build guile-build-system)
                              ,@%gnu-build-system-modules)
-         #:phases
-         (modify-phases %standard-phases
-           (add-before 'build 'set-GUILE_AUTO_COMPILE
-             (lambda _
-               ;; To avoid warnings relating to 'guild'.
-               (setenv "GUILE_AUTO_COMPILE" "0")
-               #t))
-           (add-after 'install 'wrap-executable
-             (lambda* (#:key inputs outputs target #:allow-other-keys)
-               (let* ((out (assoc-ref outputs "out"))
-                      (bin (string-append out "/bin"))
-                      (guile (assoc-ref inputs "guile"))
-                      (version (target-guile-effective-version))
-                      (scm (string-append out "/share/guile/site/" version))
-                      (go  (string-append out "/lib/guile/" version "/site-ccache")))
-                 (for-each
-                  (lambda (file)
-                    (simple-format (current-error-port) "wrapping: ~A\n" file)
-                    (let ((guile-inputs (list
-                                         "guile-json"
-                                         "guile-gcrypt"
-                                         "guix"
-                                         "guile-prometheus"
-                                         "guile-lib"
-                                         "guile-lzlib"
-                                         "guile-zlib"
-                                         "guile-sqlite3"
-                                         "guile-gnutls"
-                                         ,@(if (target-hurd?)
-                                               '()
-                                               '("guile-fibers")))))
-                      (wrap-program file
-                        `("PATH" ":" prefix
-                          (,bin
-                           ;; Support building without sqitch as an input, as it
-                           ;; can't be cross-compiled yet
-                           ,@(or (and=> (assoc-ref inputs "sqitch")
-                                        list)
-                                 '())))
-                        `("GUILE_LOAD_PATH" ":" prefix
-                          (,scm ,(string-join
+        #:phases
+        #~(modify-phases %standard-phases
+            (add-before 'build 'set-GUILE_AUTO_COMPILE
+              (lambda _
+                ;; To avoid warnings relating to 'guild'.
+                (setenv "GUILE_AUTO_COMPILE" "0")))
+            (add-after 'install 'wrap-executable
+              (lambda* (#:key inputs outputs target #:allow-other-keys)
+                (let* ((out (assoc-ref outputs "out"))
+                       (bin (string-append out "/bin"))
+                       (guile (assoc-ref inputs "guile"))
+                       (version (target-guile-effective-version))
+                       (scm (string-append out "/share/guile/site/" version))
+                       (go  (string-append out "/lib/guile/" version "/site-ccache")))
+                  (for-each
+                   (lambda (file)
+                     (simple-format (current-error-port) "wrapping: ~A\n" file)
+                     (let ((guile-inputs (list
+                                          "guile-json"
+                                          "guile-gcrypt"
+                                          "guix"
+                                          "guile-prometheus"
+                                          "guile-lib"
+                                          "guile-lzlib"
+                                          "guile-zlib"
+                                          "guile-sqlite3"
+                                          "guile-gnutls"
+                                          #$@(if (target-hurd?)
+                                                 '()
+                                                 '("guile-fibers")))))
+                       (wrap-program file
+                         `("PATH" ":" prefix
+                           (,bin
+                            ;; Support building without sqitch as an input, as it
+                            ;; can't be cross-compiled yet
+                            ,@(or (and=> (assoc-ref inputs "sqitch")
+                                         list)
+                                  '())))
+                         `("GUILE_LOAD_PATH" ":" prefix
+                           (,scm ,(string-join
+                                   (map (lambda (input)
+                                          (simple-format
+                                           #f "~A/share/guile/site/~A"
+                                           (assoc-ref inputs input)
+                                           version))
+                                        guile-inputs)
+                                   ":")))
+                         `("GUILE_LOAD_COMPILED_PATH" ":" prefix
+                           (,go ,(string-join
                                   (map (lambda (input)
                                          (simple-format
-                                          #f "~A/share/guile/site/~A"
+                                          #f "~A/lib/guile/~A/site-ccache"
                                           (assoc-ref inputs input)
                                           version))
                                        guile-inputs)
-                                  ":")))
-                        `("GUILE_LOAD_COMPILED_PATH" ":" prefix
-                          (,go ,(string-join
-                                 (map (lambda (input)
-                                        (simple-format
-                                         #f "~A/lib/guile/~A/site-ccache"
-                                         (assoc-ref inputs input)
-                                         version))
-                                      guile-inputs)
-                                 ":"))))))
-                  (find-files bin)))
-               #t))
-           (delete 'strip))))             ; As the .go files aren't compatible
+                                  ":"))))))
+                   (find-files bin)))))
+            (delete 'strip))))             ; As the .go files aren't compatible
       (native-inputs
        (list pkg-config
              autoconf
@@ -1654,8 +1694,8 @@ in an isolated environment, in separate namespaces.")
     (license license:gpl3+)))
 
 (define-public nar-herder
-  (let ((commit "b27ca4dc0efbb0d9c397fc39347af9b8e8734ab9")
-        (revision "20"))
+  (let ((commit "53682fac7e00cd2801406edbd014922c1720c347")
+        (revision "21"))
     (package
       (name "nar-herder")
       (version (git-version "0" revision commit))
@@ -1666,64 +1706,64 @@ in an isolated environment, in separate namespaces.")
                       (commit commit)))
                 (sha256
                  (base32
-                  "075acihpxvw4rkmbn7wiswqixv2afla8d8x7mgxqc26hba090404"))
+                  "18mzrpc5ni8d6xbp1bg0nzdj0brmnji4jm1gyiq77dm17c118zyz"))
                 (file-name (string-append name "-" version "-checkout"))))
       (build-system gnu-build-system)
       (arguments
-       `(#:modules (((guix build guile-build-system)
+       (list
+        #:modules `(((guix build guile-build-system)
                      #:select (target-guile-effective-version))
                     ,@%gnu-build-system-modules)
-         #:imported-modules ((guix build guile-build-system)
+        #:imported-modules `((guix build guile-build-system)
                              ,@%gnu-build-system-modules)
-         #:phases
-         (modify-phases %standard-phases
-           (add-before 'build 'set-GUILE_AUTO_COMPILE
-             (lambda _
-               ;; To avoid warnings relating to 'guild'.
-               (setenv "GUILE_AUTO_COMPILE" "0")))
-           (add-after 'install 'wrap-executable
-             (lambda* (#:key inputs outputs target #:allow-other-keys)
-               (let* ((out (assoc-ref outputs "out"))
-                      (bin (string-append out "/bin"))
-                      (guile (assoc-ref inputs "guile"))
-                      (version (target-guile-effective-version))
-                      (scm (string-append out "/share/guile/site/" version))
-                      (go  (string-append out "/lib/guile/" version "/site-ccache")))
-                 (for-each
-                  (lambda (file)
-                    (simple-format (current-error-port) "wrapping: ~A\n" file)
-                    (let ((guile-inputs (list
-                                         "guile-json"
-                                         "guile-gcrypt"
-                                         "guix"
-                                         "guile-lib"
-                                         "guile-lzlib"
-                                         "guile-zstd"
-                                         "guile-prometheus"
-                                         "guile-sqlite3"
-                                         "guile-gnutls"
-                                         "guile-fibers")))
-                      (wrap-program file
-                        `("GUILE_LOAD_PATH" ":" prefix
-                          (,scm ,(string-join
+        #:phases
+        #~(modify-phases %standard-phases
+            (add-before 'build 'set-GUILE_AUTO_COMPILE
+              (lambda _
+                ;; To avoid warnings relating to 'guild'.
+                (setenv "GUILE_AUTO_COMPILE" "0")))
+            (add-after 'install 'wrap-executable
+              (lambda* (#:key inputs outputs target #:allow-other-keys)
+                (let* ((out (assoc-ref outputs "out"))
+                       (bin (string-append out "/bin"))
+                       (guile (assoc-ref inputs "guile"))
+                       (version (target-guile-effective-version))
+                       (scm (string-append out "/share/guile/site/" version))
+                       (go  (string-append out "/lib/guile/" version "/site-ccache")))
+                  (for-each
+                   (lambda (file)
+                     (simple-format (current-error-port) "wrapping: ~A\n" file)
+                     (let ((guile-inputs (list
+                                          "guile-json"
+                                          "guile-gcrypt"
+                                          "guix"
+                                          "guile-lib"
+                                          "guile-lzlib"
+                                          "guile-zstd"
+                                          "guile-prometheus"
+                                          "guile-sqlite3"
+                                          "guile-gnutls"
+                                          "guile-fibers")))
+                       (wrap-program file
+                         `("GUILE_LOAD_PATH" ":" prefix
+                           (,scm ,(string-join
+                                   (map (lambda (input)
+                                          (string-append
+                                           (assoc-ref inputs input)
+                                           "/share/guile/site/"
+                                           version))
+                                        guile-inputs)
+                                   ":")))
+                         `("GUILE_LOAD_COMPILED_PATH" ":" prefix
+                           (,go ,(string-join
                                   (map (lambda (input)
                                          (string-append
                                           (assoc-ref inputs input)
-                                          "/share/guile/site/"
-                                          version))
+                                          "/lib/guile/" version "/site-ccache"))
                                        guile-inputs)
-                                  ":")))
-                        `("GUILE_LOAD_COMPILED_PATH" ":" prefix
-                          (,go ,(string-join
-                                 (map (lambda (input)
-                                        (string-append
-                                         (assoc-ref inputs input)
-                                         "/lib/guile/" version "/site-ccache"))
-                                      guile-inputs)
-                                 ":"))))))
-                  (find-files bin)))
-               #t))
-           (delete 'strip))))           ; As the .go files aren't compatible
+                                  ":"))))))
+                   (find-files bin)))))
+            (delete 'strip))))           ; As the .go files aren't compatible
       (native-inputs
        (list pkg-config
              autoconf
@@ -1772,20 +1812,20 @@ and the error handling is very rough.")
 (define-public gcab
   (package
     (name "gcab")
-    (version "1.4")
+    (version "1.6")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://gnome/sources/gcab/"
                                   version "/gcab-" version ".tar.xz"))
               (sha256
                (base32
-                "13q43iqld4l50yra45lhvkd376pn6qpk7rkx374zn8y9wsdzm9b7"))))
+                "02sngv40zwadajsiav1paahyfgkccbh9s7r5ks82chbwawarc31g"))))
     (build-system meson-build-system)
     (native-inputs
-     `(("glib:bin" ,glib "bin")         ; for glib-mkenums
-       ("intltool" ,intltool)
-       ("pkg-config" ,pkg-config)
-       ("vala" ,vala)))
+     (list `(,glib "bin")               ; for glib-mkenums
+           intltool
+           pkg-config
+           vala))
     (inputs
      (list glib zlib))
     (arguments
@@ -1865,7 +1905,7 @@ for packaging and deployment of cross-compiled Windows applications.")
            docbook-xml
            docbook-xsl
            e2fsprogs
-           fuse
+           fuse-2
            glib
            gpgme
            libarchive
@@ -1966,7 +2006,7 @@ cp -r /tmp/locale/*/en_US.*")))
            bubblewrap
            curl
            dconf
-           fuse
+           fuse-2
            gdk-pixbuf
            gpgme
            json-glib

@@ -224,7 +224,9 @@ communication, encryption, decryption, signatures, etc.")
                                   "/download/v" version "/signify-" version ".tar.xz"))
               (sha256
                (base32
-                "0x1bipfphnyvf2kl7n9q4gawaglma79368vb8whama6lxsggsm8i"))))
+                "0x1bipfphnyvf2kl7n9q4gawaglma79368vb8whama6lxsggsm8i"))
+              (modules '((guix build utils)))
+              (snippet '(delete-file-recursively "libbsd"))))
     (build-system gnu-build-system)
     ;; TODO Build with libwaive (described in README.md), to implement something
     ;; like OpenBSD's pledge().
@@ -246,7 +248,7 @@ signatures using the elliptic curve Ed25519.  This is a Linux port of the
 OpenBSD tool of the same name.")
     ;; This package includes third-party code that was originally released under
     ;; various non-copyleft licenses. See the source files for clarification.
-    (license (list license:bsd-3 license:bsd-4 license:expat license:isc
+    (license (list license:bsd-3 license:expat license:isc
                    license:public-domain (license:non-copyleft
                                           "file://base64.c"
                                           "See base64.c in the distribution for
@@ -333,7 +335,7 @@ OpenBSD tool of the same name.")
        ("googletest-source" ,(package-source googletest))
        ("perl" ,perl)))
     (inputs
-     (list attr fuse openssl-1.1 tinyxml2))
+     (list attr fuse-2 openssl-1.1 tinyxml2))
     (arguments
      `(#:configure-flags (list "-DUSE_INTERNAL_TINYXML=OFF")
        #:phases
@@ -1479,7 +1481,7 @@ non-encrypted files.")
 (define-public cryfs
   (package
     (name "cryfs")
-    (version "0.11.3")
+    (version "0.11.4")
     (source
      (origin
        (method url-fetch)
@@ -1487,7 +1489,7 @@ non-encrypted files.")
              "https://github.com/cryfs/cryfs/releases/download/"
              version "/cryfs-" version ".tar.xz"))
        (sha256
-        (base32 "1h41dhdfk2nll0vx5i66mgrdalv6kccwq5yx99gridywxw6qxxhq"))))
+        (base32 "0a48qijfrd02ianp19x3kz24w1pgigmlxdr5nks0gag7z5b2s7m7"))))
     (build-system cmake-build-system)
     (arguments
      '(#:modules ((guix build cmake-build-system)
@@ -1514,14 +1516,7 @@ non-encrypted files.")
              (when tests?
                (substitute* "CMakeLists.txt"
                  (("option.BUILD_TESTING .build test cases. OFF.")
-                  "option(BUILD_TESTING \"build test cases\" ON)")))
-             ;; work around a missing import fixed upstream in boost 1.78
-             ;; See https://github.com/boostorg/process/issues/213
-             (substitute* (find-files "." "subprocess.cpp$")
-               (("#include <boost/process.hpp>.*" line)
-                (string-append
-                 "#include <algorithm>\n"
-                 line)))))
+                  "option(BUILD_TESTING \"build test cases\" ON)")))))
          (replace 'check
            (lambda* (#:key tests? #:allow-other-keys)
              (when tests?
@@ -1539,7 +1534,7 @@ non-encrypted files.")
     (native-inputs
      (list pkg-config python-wrapper))
     (inputs
-     (list boost curl fuse range-v3 spdlog))
+     (list boost curl fuse-2 range-v3 spdlog))
     (home-page "https://www.cryfs.org/")
     (synopsis "Encrypted FUSE filesystem for the cloud")
     (description "CryFS encrypts your files, so you can safely store them anywhere.

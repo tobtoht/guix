@@ -212,8 +212,13 @@ without requiring the source code to be rewritten.")
                     (rename-file "test-suite/tests/srfi-18.test" "srfi-18.test")
                     ;; failed to remove 't-guild-compile-7215.go.tdL7yC
                     (substitute* "test-suite/standalone/Makefile.in"
-                      (("test-guild-compile ") ""))
-                    #t)))
+                      (("test-guild-compile ") "")))))
+              '())
+        ,@(if (system-hurd?)
+              '((add-after 'unpack 'disable-threads.tests
+                  (lambda _
+                    ;; Many tests hang, esp. (join-thread ..), also others.
+                    (rename-file "test-suite/tests/threads.test" "threads.test"))))
               '())
         (add-before 'configure 'pre-configure
           (lambda* (#:key inputs #:allow-other-keys)
@@ -286,7 +291,12 @@ without requiring the source code to be rewritten.")
         (if (target-x86-32?)            ;<https://issues.guix.gnu.org/49368>
             `(append '("--disable-static")
                  '("CFLAGS=-g -O2 -fexcess-precision=standard"))
-            flags))))
+            flags))
+       ((#:phases phases '%standard-phases)
+        #~(modify-phases #$phases
+            #$@(if (system-hurd?)
+                   #~((delete 'disable-threads.tests))
+                   '())))))
 
     (properties '((timeout . 72000)               ;20 hours
                   (max-silent-time . 36000)))     ;10 hours (needed on ARM
@@ -378,6 +388,19 @@ without requiring the source code to be rewritten.")
                                (search-patch "guile-hurd-posix-spawn.patch")))
                           (invoke "patch" "--force" "-p1" "-i" patch))))
                    #~())
+            #$@(if (system-hurd?)
+                   #~((add-after 'unpack 'disable-popen.test-no-duplicate
+                        ;; This test hangs on the Hurd.
+                        (lambda _
+                          (substitute* "test-suite/tests/popen.test"
+                            (("\\(pass-if \"no duplicate\".*" all)
+                             (string-append
+                              all
+                              (object->string
+                               '(when (string-ci= "GNU"
+                                                  (vector-ref (uname) 0))
+                                  (throw 'unresolved)))))))))
+                   #~())
             #$@(if (target-ppc32?)
                    #~((add-after 'unpack 'adjust-bootstrap-flags
                         (lambda _
@@ -434,7 +457,7 @@ without requiring the source code to be rewritten.")
 (define-public guile-next
   (let ((version "3.0.9")
         (revision "0")
-        (commit "aa2cfe7cf69327285a17de97682d696f2f6c43ef"))
+        (commit "c2cba86785a34351788f52ea4fccf9f10f3a1dee"))
     (package
       (inherit guile-3.0)
       (name "guile-next")
@@ -448,7 +471,7 @@ without requiring the source code to be rewritten.")
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "03xwy3ni85qy0lrvz0lk0488394nfsfc1004l84lgyzql2qwkynl"))))
+                  "1k0dkmyf9s4iynjj2qm0szqfpfd3b07cpj0fay14iwbidkrqndzf"))))
       (arguments
        (substitute-keyword-arguments (package-arguments guile-3.0)
          ((#:phases phases '%standard-phases)
@@ -580,8 +603,8 @@ GNU@tie{}Guile.  Use the @code{(ice-9 readline)} module and call its
                   "1l7ik4q4zk7vq4m3gnwizc0b64b1mdr31hxqlzxs94xaf2lvi7s2"))))
       (arguments
        (substitute-keyword-arguments (package-arguments guile-2.2)
-         ((#:phases phases '%standard-phases)
-          `(modify-phases ,phases
+         ((#:phases phases)
+          #~(modify-phases #$phases
              (replace 'bootstrap
                (lambda _
                  ;; Disable broken tests.
@@ -594,8 +617,7 @@ GNU@tie{}Guile.  Use the @code{(ice-9 readline)} module and call its
                     (string-append "#;" m)))
 
                  (patch-shebang "build-aux/git-version-gen")
-                 (invoke "sh" "autogen.sh")
-                 #t))))))
+                 (invoke "sh" "autogen.sh")))))))
       (native-inputs
        (modify-inputs (package-native-inputs guile-2.2)
          (prepend autoconf
@@ -829,7 +851,20 @@ type system, elevating types to first-class status.")
                  (lambda _
                    (substitute* "Makefile.am"
                      ((".*tests/blob\\.scm.*") ""))))))
-           '())))
+           '())
+       ,@(if (system-hurd?)
+             (list
+              #:phases
+              #~(modify-phases %standard-phases
+                  (add-after 'unpack 'skip-tests/hurd
+                    (lambda _
+                      (substitute* "tests/proxy.scm"
+                        (("\\(test-begin.*" all)
+                         (string-append
+                          all
+                          "(when (string-ci= \"GNU\" (vector-ref (uname) 0))\n"
+                          "  (test-skip 1))\n")))))))
+             '())))
     (native-inputs
      (list pkg-config autoconf automake texinfo guile-3.0 guile-bytestructures))
     (inputs

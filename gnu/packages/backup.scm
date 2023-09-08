@@ -461,7 +461,8 @@ remain fully idle, saving power and producing less noise.")
     (inputs
      (list librsync-0.9))
     (arguments
-     `(#:make-flags `(,(string-append "PREFIX=" (assoc-ref %outputs "out"))
+     `(#:make-flags `("CFLAGS=-fcommon"
+                      ,(string-append "PREFIX=" (assoc-ref %outputs "out"))
                       ,(string-append "CC=" ,(cc-for-target)))
        #:tests? #f                      ;test input not distributed
        #:phases
@@ -780,7 +781,7 @@ backups on untrusted computers.")
     (native-inputs
      (list pkg-config))
     (inputs
-     (list fuse-3 libxml2 ntfs-3g openssl))
+     (list fuse libxml2 ntfs-3g openssl))
     (arguments
      `(#:configure-flags
        (list "--disable-static"
@@ -1401,14 +1402,14 @@ archives.")
 (define-public grsync
   (package
     (name "grsync")
-    (version "1.3.0")
+    (version "1.3.1")
     (source (origin
               (method url-fetch)
               (uri (string-append "http://www.opbyte.it/release/"
                                   "grsync-" version ".tar.gz"))
               (sha256
                (base32
-                "1z1m782b50x348kgynzf753apy8yszkl31y32y1jsc055skcdixp"))))
+                "1ly6ng211wj9sc0la73jsz2lviwd7b4a7bhw16kmnbm6v8jhxk1k"))))
     (build-system gnu-build-system)
     (native-inputs (list intltool pkg-config))
     (inputs (list gtk+))

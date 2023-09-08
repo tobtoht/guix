@@ -37,6 +37,7 @@
   #:use-module (gnu packages tls)
   #:use-module (guix build-system gnu)
   #:use-module (guix download)
+  #:use-module (guix gexp)
   #:use-module (guix git-download)
   #:use-module ((guix licenses) #:prefix l:)
   #:use-module (guix packages)
@@ -46,38 +47,41 @@
 (define-public chrony
   (package
     (name "chrony")
-    (version "4.3")
+    (version "4.4")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://download.tuxfamily.org/chrony/"
                            "chrony-" version ".tar.gz"))
        (sha256
-        (base32 "0148bgzymdigkjs66fihrqw98g1yf6vgy40nlajqkw35m24sh3cx"))))
+        (base32 "123h2a9rpc6wbvnysvhl5pmckvynzrnqay7l00i18azrvbk0gyza"))))
     (build-system gnu-build-system)
     (arguments
-     `(#:modules ((srfi srfi-26)
-                  (guix build utils)
-                  (guix build gnu-build-system))
-       #:configure-flags
-       (list "--enable-scfilter"
-             "--with-sendmail=sendmail"
-             "--with-user=chrony")
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'unpack 'stay-inside-out
-           ;; Simply setting CHRONYVARDIR to something nonsensical at install
-           ;; time would result in nonsense file names in man pages.
-           (lambda _
-             (substitute* "Makefile.in"
-               (("mkdir -p \\$\\(DESTDIR\\)\\$\\(CHRONYVARDIR\\)") ":"))))
-         (add-after 'install 'install-more-documentation
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let* ((out (assoc-ref outputs "out"))
-                    (doc (string-append out "/share/doc/" ,name "-" ,version)))
-               (for-each (cut install-file <> doc)
-                         (list "README" "FAQ"))
-               (copy-recursively "examples" (string-append doc "/examples"))))))))
+     (list
+      #:modules
+      '((srfi srfi-26)
+        (guix build utils)
+        (guix build gnu-build-system))
+      #:configure-flags
+      #~(list "--enable-scfilter"
+              "--with-sendmail=sendmail"
+              "--with-user=chrony")
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'stay-inside-out
+            ;; Simply setting CHRONYVARDIR to something nonsensical at install
+            ;; time would result in nonsense file names in man pages.
+            (lambda _
+              (substitute* "Makefile.in"
+                (("mkdir -p \\$\\(DESTDIR\\)\\$\\(CHRONYVARDIR\\)") ":"))))
+          (add-after 'install 'install-more-documentation
+            (lambda _
+              (let* ((doc (string-append #$output "/share/doc/"
+                                         #$name "-" #$version)))
+                (for-each (cut install-file <> doc)
+                          (list "README" "FAQ"))
+                (copy-recursively "examples"
+                                  (string-append doc "/examples"))))))))
     (native-inputs
      (list pkg-config))
     (inputs
@@ -106,7 +110,7 @@ time-stamping or reference clock, sub-microsecond accuracy is possible.")
 (define-public ntp
   (package
    (name "ntp")
-   (version "4.2.8p15")
+   (version "4.2.8p17")
    (source
      (origin
        (method url-fetch)
@@ -119,27 +123,7 @@ time-stamping or reference clock, sub-microsecond accuracy is possible.")
                    (version-major+minor version)
                    "/ntp-" version ".tar.gz")))
        (sha256
-        (base32 "06cwhimm71safmwvp6nhxp6hvxsg62whnbgbgiflsqb8mgg40n7n"))
-       ;; Add an upstream patch to fix build with GCC 10.  Taken from
-       ;; <https://bugs.ntp.org/show_bug.cgi?id=3688>.
-       (patches (list (origin
-                        (method url-fetch)
-                        (uri "https://bugs.ntp.org/attachment.cgi?id=1760\
-&action=diff&context=patch&collapsed=&headers=1&format=raw")
-                        (file-name "ntp-gcc-compat.patch")
-                        (sha256
-                         (base32
-                          "13d28sg45rflc7kqiv30asrhna8n69wlpwx16l65rravgpvp90h2")))
-                      ;; And another one that fixes the build with glibc 2.34:
-                      ;; <https://bugs.ntp.org/show_bug.cgi?id=3741>.
-                      (origin
-                        (method url-fetch)
-                        (uri "https://bugs.ntp.org/attachment.cgi?id=1814\
-&action=diff&collapsed=&headers=1&format=raw")
-                        (file-name "ntp-glibc-compat.patch")
-                        (sha256
-                         (base32
-                          "0z8ndaw3l086mbm42v9gfgxild1yvg0anxf3724lsalvgqlndcj4")))))
+        (base32 "0rm8sf4qwcip49wgpgcp2dpwspsm0ad5xkkxy26mnv56wrrd4g8h"))
        (modules '((guix build utils)))
        (snippet
         '(begin
@@ -151,29 +135,28 @@ time-stamping or reference clock, sub-microsecond accuracy is possible.")
            (delete-file-recursively "sntp/libevent")
            (mkdir "sntp/libevent")
            (rename-file "sntp/libevent:build-aux"
-                        "sntp/libevent/build-aux")
-           #t))))
+                        "sntp/libevent/build-aux")))))
    (native-inputs (list which pkg-config))
    (inputs
-    `(("openssl" ,openssl-1.1)
-      ("libevent" ,libevent)
-      ;; Build with POSIX capabilities support on GNU/Linux.  This allows 'ntpd'
-      ;; to run as non-root (when invoked with '-u'.)
-      ,@(if (string-suffix? "-linux"
-                            (or (%current-target-system) (%current-system)))
-            `(("libcap" ,libcap))
-            '())))
+    (cons* openssl-1.1
+           libevent
+           ;; Build with POSIX capabilities support on GNU/Linux.  This allows
+           ;; 'ntpd' to run as non-root (when invoked with '-u'.)
+           (if (target-linux?)
+               (list libcap)
+               '())))
    (arguments
-    `(;; Pass "--with-yielding-select=yes" so that 'configure' knows whether
-      ;; 'select' yields when using pthreads in a cross-compilation context.
-      #:configure-flags (list "--with-yielding-select=yes")
-      #:phases
-      (modify-phases %standard-phases
-        (add-after 'unpack 'disable-network-test
-                   (lambda _
-                     (substitute* "tests/libntp/Makefile.in"
-                       (("test-decodenetnum\\$\\(EXEEXT\\) ") ""))
-                     #t)))))
+    (list
+     ;; Pass "--with-yielding-select=yes" so that 'configure' knows whether
+     ;; 'select' yields when using pthreads in a cross-compilation context.
+     #:configure-flags
+     #~(list "--with-yielding-select=yes")
+     #:phases
+     #~(modify-phases %standard-phases
+         (add-after 'unpack 'disable-network-test
+           (lambda _
+             (substitute* "tests/libntp/Makefile.in"
+               (("test-decodenetnum\\$\\(EXEEXT\\) ") "")))))))
    (build-system gnu-build-system)
    (synopsis "Real time clock synchronization system")
    (description "NTP is a system designed to synchronize the clocks of

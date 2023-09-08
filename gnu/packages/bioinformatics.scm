@@ -1680,11 +1680,11 @@ and sequence consensus.")
 
 (define-public python-decoupler-py
   ;; This latest commit fixes a bug in test_omnip.py.
-  (let ((commit "b84c524ec4a9280a56c0db963e2c7b010316ce8f")
+  (let ((commit "459b235348ddd9135217a3722d9dd1caa9a14ace")
         (revision "1"))
     (package
       (name "python-decoupler-py")
-      (version (git-version "1.3.1" revision commit))
+      (version (git-version "1.5.0" revision commit))
       (source (origin
                 (method git-fetch)
                 (uri (git-reference
@@ -1693,7 +1693,7 @@ and sequence consensus.")
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "0d74yr5jqc52vcxaca84kxqw7m5rbazpmvnrcp2y4xxrj6yr1sfc"))))
+                  "1c0xk006iilyffdaqar2d05qdhik22fbkny387zx0bndkgqifxhl"))))
       (build-system pyproject-build-system)
       (arguments
        (list
@@ -1704,6 +1704,10 @@ and sequence consensus.")
                               " and not test_show_resources"
                               " and not test_get_dorothea"
                               " and not test_get_progeny"
+                              " and not test_get_ksn_omnipath"
+                              ;; XXX module 'omnipath.interactions' has no
+                              ;; attribute 'CollecTRI'
+                              " and not test_get_collectri"
                               ;; XXX This one fails because the "texts" list
                               ;; is empty, so there are no texts to adjust.
                               ;; It is not clear whether this a compatibility
@@ -1862,6 +1866,61 @@ to produce high quality figures that can be used in publications.")
 protocol.  It provides a simple and reliable way to retrieve genomic data from
 servers supporting the protocol.")
    (license license:asl2.0)))
+
+(define-public python-liana-py
+  (package
+    (name "python-liana-py")
+    (version "0.1.9")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/saezlab/liana-py")
+                    (commit version)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "00lqrmi38wmdpjlcafgmrnkwsbp0yvm2rya6qs8y6jfizww9ff8i"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:test-flags
+      '(list "-k"
+             ;; These tests require internet access.
+             (string-append "not test_generate_lr_resource"
+                            " and not test_generate_nondefault_lr_resource"))
+      #:phases
+      '(modify-phases %standard-phases
+         ;; Numba needs a writable directory to cache functions.
+         (add-before 'build 'set-numba-cache-dir
+           (lambda _ (setenv "NUMBA_CACHE_DIR" "/tmp"))))))
+    (propagated-inputs (list python-anndata
+                             python-cell2cell
+                             python-decoupler-py
+                             python-hypothesis
+                             python-ipykernel
+                             python-ipython
+                             python-mofax
+                             python-mudata
+                             python-nbconvert
+                             python-nbsphinx
+                             python-numpydoc
+                             python-omnipath
+                             python-pandas
+                             python-plotnine
+                             python-pypandoc
+                             python-scipy
+                             python-requests
+                             python-scanpy
+                             python-statsmodels
+                             python-tqdm
+                             tzdata))
+    (native-inputs
+     (list python-black python-pytest python-pytest-cov python-numpy))
+    (home-page "https://github.com/saezlab/liana-py")
+    (synopsis "LIANA is a ligand-receptor analysis framework")
+    (description "This is a Ligand-Receptor inference framework.  The
+framework enables the use of any LR method with any resources.")
+    (license license:gpl3+)))
 
 (define-public python-logomaker
   (package
@@ -2094,6 +2153,41 @@ Python.")
     ;; pybedtools/include/gzstream.cpp and pybedtools/include/gzstream.h are
     ;; licensed lgpl2.1+
     (license (list license:expat license:lgpl2.1+))))
+
+(define-public python-scdamandtools
+  (package
+    (name "python-scdamandtools")
+    (version "1.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/KindLab/scDamAndTools")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1mblw6cn5jqik6ky8cv7ry99z6jm1i4r71pzdfl398vrwbda65gd"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list #:tests? #f))                ;there are none
+    (propagated-inputs (list python-h5py
+                             python-numpy
+                             python-sortedcontainers
+                             python-pandas
+                             python-pysam
+                             python-tqdm))
+    (native-inputs (list python-cython python-pytest))
+    (home-page "https://github.com/KindLab/scDamAndTools")
+    (synopsis "Functions for processing raw scDam&T-seq data")
+    (description
+     "This is a set of functions for processing raw scDam&T-seq data.
+scDam&T-seq is a method to simultaneously measure protein-DNA interactions and
+transcription from single cells (Rooijers et al., 2019).  It combines a
+DamID-based method to measure protein-DNA interactions and an adaptation of
+CEL-Seq to measure transcription.  The starting point of the workflow is raw
+sequencing data and the end result are tables of UMI-unique DamID and CEL-Seq
+counts.")
+    (license license:expat)))
 
 (define-public python-bioframe
   (package
@@ -4765,17 +4859,15 @@ data and settings.")
      (list boost cairo rmath-standalone))
     (native-inputs
      (list (texlive-updmap.cfg
-            (list texlive-cm
-                  texlive-amsfonts
-                  texlive-doi
-                  texlive-fonts-ec
-                  texlive-latex-examplep
-                  texlive-hyperref
+            (list texlive-doi
+                  texlive-examplep
+                  texlive-forloop
+                  texlive-listofitems
                   texlive-ms
-                  texlive-latex-natbib
-                  texlive-bibtex        ;style files used by natbib
+                  texlive-natbib
                   texlive-pgf           ;tikz
-                  texlive-latex-verbatimbox))
+                  texlive-readarray
+                  texlive-verbatimbox))
            imagemagick))
     (home-page "https://dorina.mdc-berlin.de/public/rajewsky/discrover/")
     (synopsis "Discover discriminative nucleotide sequence motifs")
@@ -4998,6 +5090,54 @@ software to answer ad hoc questions.")
            go-golang-org-rainycape-unidecode
            go-golang-org-x-image
            go-golang-org-x-text))))
+
+(define-public python-baltica
+  (package
+    (name "python-baltica")
+    (version "1.1.2")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/dieterich-lab/Baltica")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "001ac03v9pbqqzf9pv7v8gf0296ksa4f0v3wdmpa6m9701skqi4r"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:phases
+      '(modify-phases %standard-phases
+         (replace 'check
+           (lambda* (#:key tests? #:allow-other-keys)
+             (when tests?
+               ;; The tests need to be run from elsewhere...
+               (mkdir-p "/tmp/test")
+               (copy-recursively ".tests" "/tmp/test")
+               (with-directory-excursion "/tmp/test"
+                 (invoke "pytest" "-v" "--doctest-modules"))))))))
+    (propagated-inputs
+     (list gunicorn
+           python-anndata
+           python-click
+           python-flask
+           python-flask-wtf
+           python-h5py
+           python-numpy
+           python-psutil
+           python-pysam
+           python-pyyaml
+           python-scipy
+           snakemake-7))
+    (native-inputs (list python-cython python-pyfakefs python-pytest))
+    (home-page "https://github.com/dieterich-lab/Baltica")
+    (synopsis "Integrated splice junction usage analysis")
+    (description
+     "This framework facilitates the execution of @dfn{differential junction
+usage} (DJU) methods. Additionally, it enables the integration of results from
+multiple DJU methods.")
+    (license license:expat)))
 
 (define-public python-bamnostic
   (package
@@ -7079,22 +7219,22 @@ sequences).")
        #:make-flags (list "CC=gcc")
        #:phases
        (modify-phases %standard-phases
+         (replace 'bootstrap
+           ;; The bootstrap script is missing a shebang.
+           (lambda _
+             (invoke "bash" "./bootstrap.sh")))
          (add-after 'unpack 'fix-includes
            (lambda _
              (substitute* '("src/mash/Sketch.cpp"
                             "src/mash/CommandFind.cpp"
                             "src/mash/CommandScreen.cpp")
                (("^#include \"kseq\\.h\"")
-                "#include \"htslib/kseq.h\""))
-             #t))
+                "#include \"htslib/kseq.h\""))))
          (add-after 'fix-includes 'use-c++14
            (lambda _
-             ;; capnproto 0.7 requires c++14 to build
-             (substitute* "configure.ac"
-               (("c\\+\\+11") "c++14"))
-             (substitute* "Makefile.in"
-               (("c\\+\\+11") "c++14"))
-             #t)))))
+             ;; capnproto 1.0 requires c++14 to build.
+             (substitute* (list "configure.ac" "Makefile.in")
+               (("c\\+\\+11") "c++14")))))))
     (native-inputs
      (list autoconf))
     (inputs
@@ -7279,7 +7419,9 @@ program for nucleotide and protein sequences.")
                   "1hkw21rq1mwf7xp0rmbb2gqc0i6p11108m69i7mr7xcjl268pxnb"))))
       (build-system gnu-build-system)
       (arguments
-       '(#:make-flags (list "CFLAGS=-O2 -g -fcommon")))
+       `(#:tests? ,(not (or (target-riscv64?)   ;XXX: stuck on riscv64-linux
+                            (%current-target-system)))
+         #:make-flags (list "CFLAGS=-O2 -g -fcommon")))
       (inputs
        ;; XXX: TODO: Enable Lua and Guile bindings.
        ;; https://github.com/tjunier/newick_utils/issues/13
@@ -8325,7 +8467,7 @@ accessed/downloaded on demand across HTTP.")
     (inputs
      (list zlib lapack))
     (native-inputs
-     (list unzip))
+     (list unzip gcc-8))
     (home-page "http://pngu.mgh.harvard.edu/~purcell/plink/")
     (synopsis "Whole genome association analysis toolset")
     (description
@@ -8713,7 +8855,7 @@ unique transcripts.")
      (list ngs-sdk
            ncbi-vdb
            file
-           fuse
+           fuse-2
            hdf5-1.10
            libxml2
            zlib
@@ -9649,11 +9791,11 @@ tasks.")
       (license license:expat))))
 
 (define-public r-chromunity
-  (let ((commit "09fce8bc12cb84b45a6ea25bf8db6e5b75113d4f")
+  (let ((commit "712e56ccba64e8881dbb203546379a5c3c639bb2")
         (revision "1"))
     (package
       (name "r-chromunity")
-      (version (git-version "0.0.1" revision commit))
+      (version (git-version "0.0.2" revision commit))
       (source (origin
                 (method git-fetch)
                 (uri (git-reference
@@ -9662,12 +9804,13 @@ tasks.")
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "0lp0h614k8fq6h9gpbylk4chh7q6w4qda8lx03ajrpppxmg7al2d"))))
+                  "0sdja11l7bg5rmcbp2cl226cq9qrj3r8kq5lg49zbin83hya27vh"))))
       (properties `((upstream-name . "chromunity")))
       (build-system r-build-system)
       (propagated-inputs
        (list r-arrow
              r-biocgenerics
+             r-bsgenome-hsapiens-ucsc-hg38
              r-data-table
              r-gchain
              r-genomicranges
@@ -9679,7 +9822,6 @@ tasks.")
              r-pbmcapply
              r-plyr
              r-r6
-             r-skitools
              r-zoo))
       (home-page "https://github.com/mskilab/chromunity")
       (synopsis "Discovery of communities in Pore-C concatemers")
@@ -12102,16 +12244,15 @@ programs for inferring phylogenies (evolutionary trees).")
      (list automake
            autoconf
            openmpi
-           (texlive-updmap.cfg (list texlive-amsfonts
-                                     texlive-caption
-                                     texlive-cite
-                                     texlive-fancyvrb
-                                     texlive-fonts-ec
-                                     texlive-graphics
-                                     texlive-grfext
-                                     texlive-hyperref
-                                     texlive-latex-psfrag
-                                     texlive-xcolor))))
+           (texlive-updmap.cfg
+            (list texlive-caption
+                  texlive-cite
+                  texlive-fancyvrb
+                  texlive-infwarerr
+                  texlive-kvoptions
+                  texlive-pdftexcmds
+                  texlive-psfrag
+                  texlive-xcolor))))
     (home-page "https://github.com/stephaneguindon/phyml")
     (synopsis "Programs for working on SAM/BAM files")
     (description
@@ -14951,11 +15092,11 @@ activity prediction from transcriptomics data, and its R implementation
       (license license:expat))))
 
 (define-public r-liana
-  (let ((commit "efb1249af46f576d1d620956053cfa93b2cee961")
+  (let ((commit "10d81773e0874de676eb106ce56e3cf9d4fe01d3")
         (revision "1"))
     (package
       (name "r-liana")
-      (version (git-version "0.1.5" revision commit))
+      (version (git-version "0.1.11" revision commit))
       (source (origin
                 (method git-fetch)
                 (uri (git-reference
@@ -14964,13 +15105,13 @@ activity prediction from transcriptomics data, and its R implementation
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "0z645k26kqrfj5f1s412vwclw1q47h1zfxxrh9ijr30pxhpv6cv0"))))
+                  "0b0m8i9kava36s3cn6vnn5vmiwvqwxmcq8jacy6ccshsji3kgp09"))))
       (properties `((upstream-name . "liana")))
       (build-system r-build-system)
       (arguments
        (list
         #:phases
-        `(modify-phases %standard-phases
+        '(modify-phases %standard-phases
            ;; This is needed to find ~/.config/OmnipathR/omnipathr.yml
            (add-after 'unpack 'set-HOME
              (lambda _ (setenv "HOME" "/tmp"))))))
@@ -17065,32 +17206,33 @@ to an artifact/contaminant file.")
                   (delete-file-recursively "third-party")))))
     (build-system gnu-build-system)
     (arguments
-     `(#:make-flags '("OPENMP=t")
-       #:test-target "test"
-       #:phases
-       (modify-phases %standard-phases
-         (delete 'configure)
-         (add-after 'unpack 'fix-zlib-include
-           (lambda _
-             (substitute* "src/binarySequences.c"
-               (("../third-party/zlib-1.2.3/zlib.h") "zlib.h"))))
-         (replace 'install
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let* ((out (assoc-ref outputs "out"))
-                    (bin (string-append out "/bin"))
-                    (doc (string-append out "/share/doc/velvet")))
-               (mkdir-p bin)
-               (mkdir-p doc)
-               (install-file "velveth" bin)
-               (install-file "velvetg" bin)
-               (install-file "Manual.pdf" doc)
-               (install-file "Columbus_manual.pdf" doc)))))))
+     (list
+      #:make-flags #~(list "OPENMP=t")
+      #:test-target "test"
+      #:phases
+      #~(modify-phases %standard-phases
+          (delete 'configure)
+          (add-after 'unpack 'fix-zlib-include
+            (lambda _
+              (substitute* "src/binarySequences.c"
+                (("../third-party/zlib-1.2.3/zlib.h") "zlib.h"))))
+          (replace 'install
+            (lambda _
+              (let ((bin (string-append #$output "/bin"))
+                    (doc (string-append #$output "/share/doc/velvet")))
+                (mkdir-p bin)
+                (mkdir-p doc)
+                (install-file "velveth" bin)
+                (install-file "velvetg" bin)
+                (install-file "Manual.pdf" doc)
+                (install-file "Columbus_manual.pdf" doc)))))))
     (inputs
      (list openmpi zlib))
     (native-inputs
-     `(("texlive" ,(texlive-updmap.cfg (list texlive-graphics
-                                             texlive-fonts-ec
-                                             texlive-hyperref)))))
+     (list (texlive-updmap.cfg
+            (list texlive-infwarerr
+                  texlive-kvoptions
+                  texlive-pdftexcmds))))
     (home-page "https://www.ebi.ac.uk/~zerbino/velvet/")
     (synopsis "Nucleic acid sequence assembler for very short reads")
     (description
@@ -17760,7 +17902,7 @@ multiple experimental contexts.")
 (define-public vbz-compression
   (package
     (name "vbz-compression")
-    (version "1.0.1")
+    (version "1.0.3")
     (source
      (origin
        (method git-fetch)
@@ -17772,7 +17914,7 @@ multiple experimental contexts.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "1c6wsrnw03vsc5cfp2rdakly5xy55m9chjmy6v685yapdwirdky0"))))
+         "1rn5d98flvjblhj4zjpcdqqh8qlgsh5cmb13i49fnm187p03097z"))))
     (build-system cmake-build-system)
     (arguments
      `(#:configure-flags

@@ -1243,8 +1243,8 @@ deprecated; use 'setuid-program' instead~%"))
                (file-append inetutils "/bin/ping6")
                (file-append sudo "/bin/sudo")
                (file-append sudo "/bin/sudoedit")
-               (file-append fuse "/bin/fusermount")
-               (file-append fuse-3 "/bin/fusermount3")
+               (file-append fuse-2 "/bin/fusermount")
+               (file-append fuse "/bin/fusermount3")
 
                ;; To allow mounts with the "user" option, "mount" and "umount" must
                ;; be setuid-root.

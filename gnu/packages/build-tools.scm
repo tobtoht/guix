@@ -14,7 +14,7 @@
 ;;; Copyright © 2020, 2023 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2021 qblade <qblade@protonmail.com>
 ;;; Copyright © 2021, 2023 Maxim Cournoyer <maxim.cournoyer@gmail.com>
-;;; Copyright © 2022, 2023 Juliana Sims <jtsims@protonmail.com>
+;;; Copyright © 2022, 2023 Juliana Sims <juli@incana.org>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -118,7 +118,7 @@ makes a few sacrifices to acquire fast full and incremental build times.")
 (define-public bear
   (package
     (name "bear")
-    (version "3.1.2")
+    (version "3.1.3")
     (source
      (origin
        (method git-fetch)
@@ -127,7 +127,7 @@ makes a few sacrifices to acquire fast full and incremental build times.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1iq0ciw3x2awpli4k9mhx80c442xbs70y4g6qpwrirbjw15q33n7"))))
+        (base32 "0z8jzvxmzna7320w3hvmzb1qsv91g9npc5z5j28ncwnn0b74yxnn"))))
     (build-system cmake-build-system)
     (arguments
      `(#:phases (modify-phases %standard-phases
@@ -171,14 +171,14 @@ generate such a compilation database.")
 (define-public bmake
   (package
     (name "bmake")
-    (version "20230622")
+    (version "20230723")
     (source
      (origin
        (method url-fetch)
        (uri (string-append
              "http://www.crufty.net/ftp/pub/sjg/bmake-" version ".tar.gz"))
        (sha256
-        (base32 "007ckj2381bmwpxy5zmy2m19p2hxaj7ld80b5lv7i798c2fwj15l"))))
+        (base32 "012rzgjmncdla1l43f9wl8v13h7d46zgn28k6djpcgx23fahsan4"))))
     (build-system gnu-build-system)
     (inputs
      (list bash-minimal))
@@ -605,7 +605,7 @@ software.")
                    (display "au BufNewFile,BufRead Tupfile,*.tup setf tup")))
                #t))))))
     (inputs
-     (list fuse-3 pcre
+     (list fuse pcre
            `(,pcre "bin") ; pcre-config
            sqlite))
     (native-inputs

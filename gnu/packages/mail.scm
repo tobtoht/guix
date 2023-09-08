@@ -69,9 +69,7 @@
 ;;; along with GNU Guix.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (gnu packages mail)
-  #:use-module (guix gexp)
-  #:use-module (guix utils)
-  #:use-module (gnu packages)
+  #:use-module ((guix licenses) #:prefix license:)
   #:use-module (gnu packages admin)
   #:use-module (gnu packages aspell)
   #:use-module (gnu packages autotools)
@@ -97,6 +95,7 @@
   #:use-module (gnu packages emacs)
   #:use-module (gnu packages enchant)
   #:use-module (gnu packages file)
+  #:use-module (gnu packages flex)
   #:use-module (gnu packages fontutils)
   #:use-module (gnu packages freedesktop)
   #:use-module (gnu packages gawk)
@@ -104,15 +103,14 @@
   #:use-module (gnu packages gettext)
   #:use-module (gnu packages ghostscript)
   #:use-module (gnu packages glib)
-  #:use-module (gnu packages golang)
   #:use-module (gnu packages gnome)
   #:use-module (gnu packages gnupg)
+  #:use-module (gnu packages golang)
   #:use-module (gnu packages groff)
   #:use-module (gnu packages gsasl)
   #:use-module (gnu packages gtk)
   #:use-module (gnu packages guile)
   #:use-module (gnu packages guile-xyz)
-  #:use-module (gnu packages flex)
   #:use-module (gnu packages haskell-xyz)
   #:use-module (gnu packages icu4c)
   #:use-module (gnu packages kerberos)
@@ -133,8 +131,8 @@
   #:use-module (gnu packages nettle)
   #:use-module (gnu packages networking)
   #:use-module (gnu packages ninja)
-  #:use-module (gnu packages openldap)
   #:use-module (gnu packages onc-rpc)
+  #:use-module (gnu packages openldap)
   #:use-module (gnu packages pcre)
   #:use-module (gnu packages pdf)
   #:use-module (gnu packages perl)
@@ -149,15 +147,15 @@
   #:use-module (gnu packages python-web)
   #:use-module (gnu packages python-xyz)
   #:use-module (gnu packages ragel)
-  #:use-module (gnu packages regex)
   #:use-module (gnu packages rdf)
   #:use-module (gnu packages readline)
+  #:use-module (gnu packages regex)
   #:use-module (gnu packages ruby)
   #:use-module (gnu packages rust-apps)
-  #:use-module (gnu packages search)
-  #:use-module (gnu packages serialization)
   #:use-module (gnu packages samba)
   #:use-module (gnu packages screen)
+  #:use-module (gnu packages search)
+  #:use-module (gnu packages serialization)
   #:use-module (gnu packages sphinx)
   #:use-module (gnu packages sqlite)
   #:use-module (gnu packages tcl)
@@ -169,29 +167,30 @@
   #:use-module (gnu packages web)
   #:use-module (gnu packages webkit)
   #:use-module (gnu packages xdisorg)
-  #:use-module (gnu packages xorg)
   #:use-module (gnu packages xml)
-  #:use-module ((guix licenses) #:prefix license:)
-  #:use-module (guix packages)
-  #:use-module (guix deprecation)
-  #:use-module (guix download)
-  #:use-module (guix git-download)
-  #:use-module (guix svn-download)
-  #:use-module (guix utils)
+  #:use-module (gnu packages xorg)
+  #:use-module (gnu packages)
   #:use-module (guix build-system cmake)
+  #:use-module (guix build-system emacs)
   #:use-module (guix build-system glib-or-gtk)
-  #:use-module (guix build-system go)
   #:use-module (guix build-system gnu)
   #:use-module (guix build-system go)
   #:use-module (guix build-system guile)
-  #:use-module (guix build-system emacs)
   #:use-module (guix build-system meson)
   #:use-module (guix build-system perl)
-  #:use-module (guix build-system python)
   #:use-module (guix build-system pyproject)
+  #:use-module (guix build-system python)
   #:use-module (guix build-system trivial)
-  #:use-module (srfi srfi-1)
-  #:use-module (ice-9 match))
+  #:use-module (guix deprecation)
+  #:use-module (guix download)
+  #:use-module (guix gexp)
+  #:use-module (guix git-download)
+  #:use-module (guix packages)
+  #:use-module (guix svn-download)
+  #:use-module (guix utils)
+  #:use-module (guix utils)
+  #:use-module (ice-9 match)
+  #:use-module (srfi srfi-1))
 
 (define-public abook
   (package
@@ -648,7 +647,7 @@ operating systems.")
 (define-public neomutt
   (package
     (name "neomutt")
-    (version "20220429")
+    (version "20230517")
     (source
      (origin
        (method git-fetch)
@@ -657,7 +656,7 @@ operating systems.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "106m6al48m22gl8848z8d0hsg2qiaz74vgy4f37hycl4v5d3n5ic"))))
+        (base32 "0kjllp2scgmpkl8yd0hwz6jmm98hr2r7qkb75ps9753fl96i4bfn"))))
     (build-system gnu-build-system)
     (inputs
      (list cyrus-sasl
@@ -802,27 +801,13 @@ It adds a large amount of new and improved features to mutt.")
            vala
            which))                      ; to find libtool, &c.
     (inputs (list glib gpgme zlib))
-    (home-page "http://spruce.sourceforge.net/gmime/")
+    (home-page "https://spruce.sourceforge.net/gmime/")
     (synopsis "MIME message parser and creator library")
     (description
      "GMime provides a core library and set of utilities which may be used for
 the creation and parsing of messages using the Multipurpose Internet Mail
 Extension (MIME).")
     (license (list license:lgpl2.1+ license:gpl2+ license:gpl3+))))
-
-;; Some packages are not ready for GMime 3 yet.
-(define-public gmime-2.6
-  (package
-    (inherit gmime)
-    (version "2.6.23")
-    (source (origin
-              (method url-fetch)
-              (uri (string-append "mirror://gnome/sources/gmime/"
-                                  (version-major+minor version)
-                                  "/gmime-" version ".tar.xz"))
-              (sha256
-               (base32
-                "0slzlzcr3h8jikpz5a5amqd0csqh2m40gdk910ws2hnaf5m6hjbi"))))))
 
 (define-public altermime
   (package
@@ -2715,7 +2700,7 @@ Authentication-Results header seen in the wild.")
 (define-public perl-mail-dkim
   (package
     (name "perl-mail-dkim")
-    (version "1.20220520")
+    (version "1.20230630")
     (source (origin
               (method url-fetch)
               (uri (string-append
@@ -2724,18 +2709,22 @@ Authentication-Results header seen in the wild.")
                      ".tar.gz"))
               (sha256
                (base32
-                "0iiny8s1a60pksxzlpkk9b6x6z907m4pdxjbsaih1bdz9g4bii4a"))))
+                "1m6ka1smkcmv682pgqh7npg4fzdfcn1654bs068sqhqgl29rm80g"))))
     (build-system perl-build-system)
     (propagated-inputs
-     (list perl-crypt-openssl-rsa perl-mail-authenticationresults
-           perl-mailtools perl-net-dns))
+     (list perl-crypt-openssl-rsa
+           perl-cryptx
+           perl-mail-authenticationresults
+           perl-mailtools
+           perl-net-dns))
     (native-inputs
-     (list perl-net-dns-resolver-mock perl-test-requiresinternet
+     (list perl-net-dns-resolver-mock
+           perl-test-requiresinternet
            perl-yaml-libyaml))
     (home-page "https://metacpan.org/release/Mail-DKIM")
     (synopsis "Signs/verifies Internet mail with DKIM/DomainKey signatures")
-    (description "Mail::DKIM is a Perl module that implements the new Domain
-Keys Identified Mail (DKIM) standard, and the older Yahoo! DomainKeys standard,
+    (description "Mail::DKIM is a Perl module that implements the @acronym{DKIM,
+Domain Keys Identified Mail} standard, and the older Yahoo! DomainKeys standard,
 both of which sign and verify emails using digital signatures and DNS records.
 Mail-DKIM can be used by any Perl program that wants to provide support for
 DKIM and/or DomainKeys.")
@@ -2776,6 +2765,7 @@ DKIM and/or DomainKeys.")
                (wrap.pl (list "/bin/dkimproxy.in"
                               "/bin/dkimproxy.out")
                         (list "perl-crypt-openssl-rsa"
+                              "perl-cryptx"
                               "perl-io-socket-inet6"
                               "perl-mailtools"
                               "perl-mail-authenticationresults"
@@ -2785,6 +2775,7 @@ DKIM and/or DomainKeys.")
                               "perl-socket6"))
                (wrap.pl (list "/bin/dkim_responder.pl")
                         (list "perl-crypt-openssl-rsa"
+                              "perl-cryptx"
                               "perl-mail-dkim"
                               "perl-mailtools"
                               "perl-mime-tools"
@@ -2793,6 +2784,7 @@ DKIM and/or DomainKeys.")
     (inputs
      (list perl
            perl-crypt-openssl-rsa
+           perl-cryptx
            perl-io-socket-inet6
            perl-mailtools
            perl-mail-authenticationresults
@@ -4030,13 +4022,13 @@ servers.  The 4rev1 and 4 versions of IMAP are supported.")
 (define-public urlscan
   (package
     (name "urlscan")
-    (version "1.0.0")
+    (version "1.0.1")
     (source
       (origin
         (method url-fetch)
         (uri (pypi-uri "urlscan" version))
         (sha256
-         (base32 "0rxqdrss34rgnfmbn8ab976dchjbz72wp4ywqrdib119a5xnhqzh"))))
+         (base32 "0zrh2c8p70fq9y7afmpbsirz22nq2qhnks5c5zfmgnm2b9p9iv70"))))
     (build-system pyproject-build-system)
     (arguments
      (list #:tests? #f))        ; No tests.
@@ -4081,8 +4073,8 @@ It is a replacement for the @command{urlview} program.")
     (license license:gpl2+)))
 
 (define-public mumi
-  (let ((commit "85d5efb4367b9178eb7093e3ebca760745de0753")
-        (revision "2"))
+  (let ((commit "2453a5a6686c035854e4d523b8faa8c47405bd76")
+        (revision "3"))
     (package
       (name "mumi")
       (version (git-version "0.0.5" revision commit))
@@ -4094,7 +4086,7 @@ It is a replacement for the @command{urlview} program.")
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "0yn8dfj3krqwfsdn888vbv903kfa7clmbj2xxin263zqcyzc3alq"))))
+                  "0dq87qn77c6qganhck048qxq5ghj3fh2v604f87hwv530lxifabr"))))
       (build-system gnu-build-system)
       (arguments
        (list
@@ -4159,7 +4151,7 @@ It is a replacement for the @command{urlview} program.")
 (define-public ytnef
   (package
     (name "ytnef")
-    (version "2.0")
+    (version "2.1.2")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -4168,7 +4160,7 @@ It is a replacement for the @command{urlview} program.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0pk7jp8yc91nahcb7659khwdid0ibfi7n0135kwfnasak8gr75rz"))))
+                "0rwgr98jn86d37xmgj57pl488kw62q7vq8jjicbbqkxl6vjgh1li"))))
     (build-system gnu-build-system)
     (arguments
      (list #:configure-flags
@@ -4541,7 +4533,7 @@ on RFC 3501 and original @code{imaplib} module.")
 (define-public rspamd
   (package
     (name "rspamd")
-    (version "3.4")
+    (version "3.6")
     (source
      (origin
        (method git-fetch)
@@ -4549,24 +4541,24 @@ on RFC 3501 and original @code{imaplib} module.")
              (url "https://github.com/rspamd/rspamd")
              (commit version)))
        (sha256
-        (base32 "0jgmi8wqzsnwvfj6w4njzhxhcawbafsdxjkx1ym8r2jx8k4hwhi8"))
+        (base32 "1ra18c3wczbdqrg9p69k04smjskjkdpxcfff9ff4yi7pmqjaxr8s"))
        (file-name (git-file-name name version))))
     (build-system cmake-build-system)
     (arguments
      '(#:configure-flags '("-DENABLE_LUAJIT=ON"
                            "-DLOCAL_CONFDIR=/etc/rspamd")))
     (inputs
-     (list openssl
+     (list file
            glib
-           ragel
-           luajit
-           sqlite
-           file
            icu4c
+           libsodium
+           luajit
+           openssl
            pcre2
-           zlib
            perl
-           libsodium))
+           ragel
+           sqlite
+           zlib))
     (native-inputs
      (list pkg-config))
     (synopsis "Spam filtering system")

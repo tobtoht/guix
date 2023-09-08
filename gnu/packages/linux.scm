@@ -34,7 +34,7 @@
 ;;; Copyright © 2018 Vasile Dumitrascu <va511e@yahoo.com>
 ;;; Copyright © 2019 Tim Gesthuizen <tim.gesthuizen@yahoo.de>
 ;;; Copyright © 2019 mikadoZero <mikadozero@yandex.com>
-;;; Copyright © 2019, 2020, 2021, 2022 Maxim Cournoyer <maxim.cournoyer@gmail.com>
+;;; Copyright © 2019, 2020, 2021, 2022, 2023 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2019 Stefan Stefanović <stefanx2ovic@gmail.com>
 ;;; Copyright © 2019-2022 Brice Waegeneire <brice@waegenei.re>
 ;;; Copyright © 2019 Kei Kebreau <kkebreau@posteo.net>
@@ -42,7 +42,7 @@
 ;;; Copyright © 2020 Pierre Neidhardt <mail@ambrevar.xyz>
 ;;; Copyright © 2020 Chris Marusich <cmmarusich@gmail.com>
 ;;; Copyright © 2020 Vincent Legoll <vincent.legoll@gmail.com>
-;;; Copyright © 2020 Jan (janneke) Nieuwenhuizen <janneke@gnu.org>
+;;; Copyright © 2020, 2023 Janneke Nieuwenhuizen <janneke@gnu.org>
 ;;; Copyright © 2020 Morgan Smith <Morgan.J.Smith@outlook.com>
 ;;; Copyright © 2020 John Soo <jsoo1@asu.edu>
 ;;; Copyright © 2020, 2022 Michael Rohleder <mike@rohleder.de>
@@ -74,6 +74,7 @@
 ;;; Copyright © 2023 Bruno Victal <mirai@makinata.eu>
 ;;; Copyright © 2023 Yovan Naumovski <yovan@gorski.stream>
 ;;; Copyright © 2023 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2023 dan <i@dan.games>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -95,6 +96,7 @@
   #:use-module (gnu packages acl)
   #:use-module (gnu packages admin)
   #:use-module (gnu packages algebra)
+  #:use-module (gnu packages apparmor)
   #:use-module (gnu packages audio)
   #:use-module (gnu packages autotools)
   #:use-module (gnu packages avahi)
@@ -112,6 +114,7 @@
   #:use-module (gnu packages databases)
   #:use-module (gnu packages datastructures)
   #:use-module (gnu packages dbm)
+  #:use-module (gnu packages disk)
   #:use-module (gnu packages docbook)
   #:use-module (gnu packages documentation)
   #:use-module (gnu packages elf)
@@ -138,6 +141,7 @@
   #:use-module (gnu packages llvm)
   #:use-module (gnu packages lsof)
   #:use-module (gnu packages lua)
+  #:use-module (gnu packages m4)
   #:use-module (gnu packages man)
   #:use-module (gnu packages maths)
   #:use-module (gnu packages multiprecision)
@@ -486,125 +490,110 @@ corresponding UPSTREAM-SOURCE (an origin), using the given DEBLOB-SCRIPTS."
 ;; The current "stable" kernels. That is, the most recently released major
 ;; versions that are still supported upstream.
 
-(define-public linux-libre-6.4-version "6.4.3")
+(define-public linux-libre-6.4-version "6.4.14")
 (define-public linux-libre-6.4-gnu-revision "gnu")
 (define deblob-scripts-6.4
   (linux-libre-deblob-scripts
    linux-libre-6.4-version
    linux-libre-6.4-gnu-revision
-   (base32 "1hfircard99kmf81416xnln0chs6hskpjqz0p55ic8alm4rdlljs")
-   (base32 "1566506bmci15i80y0l0s93dgpgima0lqfmkg5ql7gd671aawkra")))
+   (base32 "012d16rjprxdv9frf7kcakpikvw7l0s3kvj4kkp9flzdg3j8wxpz")
+   (base32 "1rwm09anyn4py1g877f9vh6ya86y2hfvlqx51bpa53dci5k0b0ds")))
 (define-public linux-libre-6.4-pristine-source
   (let ((version linux-libre-6.4-version)
-        (hash (base32 "18c8ikghvlr6h9jajy11dldck4h57wl301j14rxg7xhd6qlysd3i")))
+        (hash (base32 "1rjh0jrn5qvxwzmyg478n08vckkld8r52nkc102ppqvsfhiy7skm")))
    (make-linux-libre-source version
                             (%upstream-linux-source version hash)
                             deblob-scripts-6.4)))
 
-(define-public linux-libre-6.3-version "6.3.13")
-(define-public linux-libre-6.3-gnu-revision "gnu")
-(define deblob-scripts-6.3
-  (linux-libre-deblob-scripts
-   linux-libre-6.3-version
-   linux-libre-6.3-gnu-revision
-   (base32 "01ivgzq18fwas87q84jx9jipcw58kwdnch7ylwg06d98ncga27px")
-   (base32 "1i6vyakvqgmr3lcmr0aj8n7lbcksrp4d0rm1sz7cz64hwbsr67pq")))
-(define-public linux-libre-6.3-pristine-source
-  (let ((version linux-libre-6.3-version)
-        (hash (base32 "1ywijjhf19bciip75ppzjjh7bkadd449jr64yg2j5049w9h0aipa")))
-   (make-linux-libre-source version
-                            (%upstream-linux-source version hash)
-                            deblob-scripts-6.3)))
-
 ;; The "longterm" kernels — the older releases with long-term upstream support.
 ;; Here are the support timelines:
 ;; <https://www.kernel.org/category/releases.html>
-(define-public linux-libre-6.1-version "6.1.38")
+(define-public linux-libre-6.1-version "6.1.51")
 (define-public linux-libre-6.1-gnu-revision "gnu")
 (define deblob-scripts-6.1
   (linux-libre-deblob-scripts
    linux-libre-6.1-version
    linux-libre-6.1-gnu-revision
-   (base32 "1b96867b46m36l88qnq2d4i9y43ghw97z9jajrh11cvb6kq4xi67")
-   (base32 "1qq3nsznblz5fkwahxwq26csmrmjbxh8xknm2z4zw6b6k9svzb1b")))
+   (base32 "1sf80f2i4vf888xjcn84ymn4w5ynn30ib9033zwmv7f09yvfhapy")
+   (base32 "1c73516nbhnz0cxjz38b5794dxygb8sznv9idiibw7ablmjbhd11")))
 (define-public linux-libre-6.1-pristine-source
   (let ((version linux-libre-6.1-version)
-        (hash (base32 "0hrdh1w9z8bgy4cxqsxfkwa01yincfw1mq1bbwm36zczc0dzk97r")))
+        (hash (base32 "0fqhmb6v28rssd44z7jw57mwvvskpl4kabjylck0pg54irnl9c2q")))
    (make-linux-libre-source version
                             (%upstream-linux-source version hash)
                             deblob-scripts-6.1)))
 
-(define-public linux-libre-5.15-version "5.15.120")
+(define-public linux-libre-5.15-version "5.15.130")
 (define-public linux-libre-5.15-gnu-revision "gnu")
 (define deblob-scripts-5.15
   (linux-libre-deblob-scripts
    linux-libre-5.15-version
    linux-libre-5.15-gnu-revision
-   (base32 "0w5wyw8zp124nwydjvpnih7q3lp7gadlgsw60syw45nqq0afvlz3")
-   (base32 "1zljgvzr8irs3acq436i2iyana9vgx4k1pm3id4rz0fbaqfma602")))
+   (base32 "18ac30kxg2mf2f6gk3p935hzhz2qs110jy4xwk21kblnnkskbxj8")
+   (base32 "1c3lm0j401lv2lk39dmr4mlf5ic173snm7cc0cckl6czyvxr5ysy")))
 (define-public linux-libre-5.15-pristine-source
   (let ((version linux-libre-5.15-version)
-        (hash (base32 "1xl3nrykbxdwv5a9rk0xnb7l61dsyjvkm1ryrdii09vbmsg0i6b4")))
+        (hash (base32 "0qix62jsn3z9yccakac7fvqnip19zi05qn0w5wkgb7rj0x0lwimb")))
    (make-linux-libre-source version
                             (%upstream-linux-source version hash)
                             deblob-scripts-5.15)))
 
-(define-public linux-libre-5.10-version "5.10.186")
+(define-public linux-libre-5.10-version "5.10.194")
 (define-public linux-libre-5.10-gnu-revision "gnu1")
 (define deblob-scripts-5.10
   (linux-libre-deblob-scripts
    linux-libre-5.10-version
    linux-libre-5.10-gnu-revision
-   (base32 "0mw7qn77y9c6wrnw4rjvf75cpm1w6n1aqqhf8cnghcb97p2yxxrf")
-   (base32 "1739xvyzi3i7d12mvsvnqa7208pvwfss43kzin71l9svw0405vp5")))
+   (base32 "1b33rkn32b923025iiz4xzxiy8y5ii9j5qk4021mg575890rl4ch")
+   (base32 "0nnp46mn32yk436swd2qh34igmzinfgkwvbzp3lqyy45f06hbc2j")))
 (define-public linux-libre-5.10-pristine-source
   (let ((version linux-libre-5.10-version)
-        (hash (base32 "1qqv91r13akgik1q4jybf8czskxxizk6lpv4rsvjn9sx2dm2jq0y")))
+        (hash (base32 "15fr7krhpmqz0xqjg78m2xvfllbni3xh8xyhxh9ni31ppd3mw394")))
    (make-linux-libre-source version
                             (%upstream-linux-source version hash)
                             deblob-scripts-5.10)))
 
-(define-public linux-libre-5.4-version "5.4.249")
+(define-public linux-libre-5.4-version "5.4.256")
 (define-public linux-libre-5.4-gnu-revision "gnu1")
 (define deblob-scripts-5.4
   (linux-libre-deblob-scripts
    linux-libre-5.4-version
    linux-libre-5.4-gnu-revision
-   (base32 "1nlgk8ajb5wl3aa96h9a0pb9j5a5wmrbpk63varn557x1d00r7wj")
-   (base32 "0ll19zlgx5sbr7gvi93lgavrnzlgv6dpj2yp2x63fj6vdba5iwgc")))
+   (base32 "0xg5cz82k2cb0ikxvwv1hp5c3h377jkb5sd6aszvsk7hnabhk62v")
+   (base32 "0sw67b2pk3lng4y67diqqnhxaggnp3nbkx8dxc5fs27rinfxr4m1")))
 (define-public linux-libre-5.4-pristine-source
   (let ((version linux-libre-5.4-version)
-        (hash (base32 "079mylc5j7hk5xn59q3z2xydyh88pq7yipn67x3y7nvf5i35hm6w")))
+        (hash (base32 "0fim5q9xakwnjfg48bpsic9r2r8dvrjlalqqkm9vh1rml9mhi967")))
    (make-linux-libre-source version
                             (%upstream-linux-source version hash)
                             deblob-scripts-5.4)))
 
-(define-public linux-libre-4.19-version "4.19.288")
+(define-public linux-libre-4.19-version "4.19.294")
 (define-public linux-libre-4.19-gnu-revision "gnu1")
 (define deblob-scripts-4.19
   (linux-libre-deblob-scripts
    linux-libre-4.19-version
    linux-libre-4.19-gnu-revision
-   (base32 "06pqv050bkii0hc2v7ymny5264w1bca8db0dp1pw9mfmjg865am5")
-   (base32 "05yqb59gj7mq5ha9xg045bz517sdg6janfa2yjq70qa6ahpc5fac")))
+   (base32 "0ghdizzs6969872rnjcv9p6sl9rcbs29v3ismk125yyvjaczd428")
+   (base32 "1425mhkfxn18vxn05bb4h3li7x1jl7l1hf1zi8xhnqv3wa31h9wl")))
 (define-public linux-libre-4.19-pristine-source
   (let ((version linux-libre-4.19-version)
-        (hash (base32 "1sz3jp6kx0axdwp0wsq903q1090rbav9d12m5128335m8p2d1srk")))
+        (hash (base32 "03x0xsb8a369zdr81hg6xdl5n5v48k6iwnhj6r29725777lvvbfc")))
     (make-linux-libre-source version
                              (%upstream-linux-source version hash)
                              deblob-scripts-4.19)))
 
-(define-public linux-libre-4.14-version "4.14.320")
+(define-public linux-libre-4.14-version "4.14.325")
 (define-public linux-libre-4.14-gnu-revision "gnu1")
 (define deblob-scripts-4.14
   (linux-libre-deblob-scripts
    linux-libre-4.14-version
    linux-libre-4.14-gnu-revision
-   (base32 "02rxvr0gmxb3zfsyyzdmzgfq04gkdkv1cc38md0xfl0mxzdzdfyk")
-   (base32 "1ccggm19nl7pdcxmsm08fkqy8phz8rqfmww5ypizibdmnrmpn2v9")))
+   (base32 "1vbgykwzf7j0yjqcwn747cfhwj0rgw3s9h627q94wb9a19x9p0fr")
+   (base32 "1faagsj4i31z2bp83hflx3q9vrddjnn37a3ah2b47iaplva7z1nd")))
 (define-public linux-libre-4.14-pristine-source
   (let ((version linux-libre-4.14-version)
-        (hash (base32 "09bn18jvazkc55bqdjbxy8fbca7vjhi9xl2h02w0sq3f1jf6g0pd")))
+        (hash (base32 "117p1mdha57f6d3kdwac9jrbmib7g77q4xhir8ghl6fmrs1f2sav")))
     (make-linux-libre-source version
                              (%upstream-linux-source version hash)
                              deblob-scripts-4.14)))
@@ -642,16 +631,13 @@ corresponding UPSTREAM-SOURCE (an origin), using the given DEBLOB-SCRIPTS."
                        (list %boot-logo-patch
                              %linux-libre-arm-export-__sync_icache_dcache-patch)))
 
-(define-public linux-libre-6.3-source
-  (source-with-patches linux-libre-6.3-pristine-source
-                       (list %boot-logo-patch
-                             %linux-libre-arm-export-__sync_icache_dcache-patch)))
-
 (define-public linux-libre-6.1-source
   (source-with-patches linux-libre-6.1-pristine-source
-                       (list %boot-logo-patch
-                             %linux-libre-arm-export-__sync_icache_dcache-patch
-                             (search-patch "linux-libre-infodocs-target.patch"))))
+                       (append
+                        (list %boot-logo-patch
+                              %linux-libre-arm-export-__sync_icache_dcache-patch)
+                        (search-patches
+                         "linux-libre-infodocs-target.patch"))))
 
 (define-public linux-libre-5.15-source
   (source-with-patches linux-libre-5.15-pristine-source
@@ -762,11 +748,6 @@ corresponding UPSTREAM-SOURCE (an origin), using the given DEBLOB-SCRIPTS."
   (make-linux-libre-headers* linux-libre-6.4-version
                              linux-libre-6.4-gnu-revision
                              linux-libre-6.4-source))
-
-(define-public linux-libre-headers-6.3
-  (make-linux-libre-headers* linux-libre-6.3-version
-                             linux-libre-6.3-gnu-revision
-                             linux-libre-6.3-source))
 
 (define-public linux-libre-headers-6.1
   (make-linux-libre-headers* linux-libre-6.1-version
@@ -1114,19 +1095,11 @@ Linux kernel.  It has been modified to remove all non-free binary blobs.")
                        "aarch64-linux" "powerpc64le-linux" "riscv64-linux")
                      #:configuration-file kernel-config))
 
-(define-public linux-libre-6.3
-  (make-linux-libre* linux-libre-6.3-version
-                     linux-libre-6.3-gnu-revision
-                     linux-libre-6.3-source
-                     '("x86_64-linux" "i686-linux" "armhf-linux"
-                       "aarch64-linux" "powerpc64le-linux" "riscv64-linux")
-                     #:configuration-file kernel-config))
-
-(define-public linux-libre-version         linux-libre-6.3-version)
-(define-public linux-libre-gnu-revision    linux-libre-6.3-gnu-revision)
-(define-public linux-libre-pristine-source linux-libre-6.3-pristine-source)
-(define-public linux-libre-source          linux-libre-6.3-source)
-(define-public linux-libre                 linux-libre-6.3)
+(define-public linux-libre-version         linux-libre-6.4-version)
+(define-public linux-libre-gnu-revision    linux-libre-6.4-gnu-revision)
+(define-public linux-libre-pristine-source linux-libre-6.4-pristine-source)
+(define-public linux-libre-source          linux-libre-6.4-source)
+(define-public linux-libre                 linux-libre-6.4)
 
 (define-public linux-libre-6.1
   (make-linux-libre* linux-libre-6.1-version
@@ -1279,7 +1252,9 @@ Linux kernel.  It has been modified to remove all non-free binary blobs.")
                      #:extra-version "arm64-generic"
                      #:extra-options
                      (append
-                      `(;; needed to fix the RTC on rockchip platforms
+                      `(;; Provide support for ath9k wireless
+                        ("CONFIG_ATH9K_HTC" . m)
+                        ;; needed to fix the RTC on rockchip platforms
                         ("CONFIG_RTC_DRV_RK808" . #t)
                         ;; Pinebook display, battery, charger and usb
                         ("CONFIG_DRM_ANALOGIX_ANX6345" . m)
@@ -1357,9 +1332,9 @@ Linux kernel.  It has been modified to remove all non-free binary blobs.")
 (define-public linux-libre-with-bpf
   (let ((base-linux-libre
          (make-linux-libre*
-          linux-libre-6.3-version
-          linux-libre-6.3-gnu-revision
-          linux-libre-6.3-source
+          linux-libre-6.4-version
+          linux-libre-6.4-gnu-revision
+          linux-libre-6.4-source
           '("x86_64-linux" "i686-linux" "armhf-linux"
             "aarch64-linux" "powerpc64le-linux" "riscv64-linux")
           #:extra-version "bpf"
@@ -1544,7 +1519,7 @@ and the notification, WiFi, and Bluetooth LED.")
 (define-public tuxedo-keyboard
   (package
     (name "tuxedo-keyboard")
-    (version "3.2.1")
+    (version "3.2.10")
     (source
      (origin
        (method git-fetch)
@@ -1553,7 +1528,7 @@ and the notification, WiFi, and Bluetooth LED.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "13fncirqcci46zxmsrawsxpazip5k46i849dwkhkqlg0mg4vxxw5"))))
+        (base32 "1kbspr1vs6jpfsb3c4hbw2d8y06v2a3m4c27rhggkfksf4x82gip"))))
     (build-system linux-module-build-system)
     (arguments
      (list #:tests? #f))                ; no test suite
@@ -2295,7 +2270,7 @@ by Robert Shea and Robert Anton Wilson.")
     (build-system cmake-build-system)
     (arguments
      '(#:tests? #f)) ;no test suite
-    (inputs (list fuse mbedtls-apache))
+    (inputs (list fuse-2 mbedtls-apache))
     (synopsis "FUSE driver to read/write Windows BitLocker drives")
     (description
      "This package provides means to to read BitLocker encrypted
@@ -2389,7 +2364,14 @@ parameters.")
                    (let* ((out #$output)
                           (dup (append-map (cut find-files out <>)
                                            '("^kill" "^uptime"))))
-                     (for-each delete-file dup)))))))
+                     (for-each delete-file dup))))
+               #$@(if (system-hurd?)
+                      #~((add-after 'unpack 'skip-tests
+                           (lambda _
+                             (substitute* "library/tests/test_version.c"
+                               (("^int main\\(.*" all)
+                                (string-append all "{\n  exit (77);//"))))))
+                      #~()))))
     (inputs (list ncurses))
     (native-inputs (list pkg-config))
     (home-page "https://gitlab.com/procps-ng/procps/")
@@ -2497,7 +2479,7 @@ module.")
                          perl
                          procps))
     (arguments
-     '(;; util-linux is the preferred source for some of the libraries and
+     `(;; util-linux is the preferred source for some of the libraries and
        ;; commands, so disable them (see, e.g.,
        ;; <http://git.buildroot.net/buildroot/commit/?id=e1ffc2f791b33633>.)
        #:configure-flags (list "--disable-libblkid"
@@ -2544,7 +2526,77 @@ module.")
                  (let ((archives (find-files lib "\\.a$")))
                    (for-each (lambda (file)
                                (chmod file #o666))
-                             archives))))))))
+                             archives)))))
+           ,@(if (system-hurd?)
+                 '((add-after 'unpack 'skip-tests
+                     (lambda _
+                       (with-directory-excursion "tests"
+                         (for-each
+                          (lambda (directory)
+                            (delete-file-recursively directory))
+                          '("d_bad_ostype"
+                            "f_detect_junk"
+                            "f_extent_oobounds"
+                            "j_ext_long_revoke_trans"
+                            "j_ext_long_trans"
+                            "j_long_revoke_trans"
+                            "j_long_revoke_trans_mcsum_32bit"
+                            "j_long_revoke_trans_mcsum_64bit"
+                            "j_long_trans"
+                            "j_long_trans_mcsum_32bit"
+                            "j_long_trans_mcsum_64bit"
+                            "j_short_revoke_trans"
+                            "j_short_revoke_trans_mcsum_64bit"
+                            "j_short_trans_64bit"
+                            "j_short_trans"
+                            "j_short_trans_mcsum_64bit"
+                            "j_short_trans_old_csum"
+                            "j_short_trans_open_recover"
+                            "j_short_trans_recover"
+                            "j_short_trans_recover_mcsum_64bit"
+                            "j_short_uncommitted_trans"
+                            "j_short_uncommitted_trans_mcsum_64bit"
+                            "m_error_behavior"
+                            "m_minrootdir"
+                            "m_rootdir"
+                            "r_32to64bit_expand_full"
+                            "r_expand_full"
+                            "r_fixup_lastbg_big"
+                            "t_change_uuid"
+                            "t_change_uuid_mcsum"
+                            "t_change_uuid_mcsum_mounted"
+                            "t_change_uuid_mcsum_seed_mounted"
+                            "t_change_uuid_mounted"
+                            "t_disable_changed_csum_seed"
+                            "t_disable_changed_csum_seed_mounted"
+                            "t_disable_csum_seed"
+                            "t_disable_meta_csum_and_seed"
+                            "t_enable_csum_seed"
+                            "t_format_csum_seed"
+                            "t_replay_and_set"
+                            "u_compound_rollback"
+                            "u_corrupt_blk_csum"
+                            "u_corrupt_blk_csum_force"
+                            "u_corrupt_key_csum"
+                            "u_debugfs_opt"
+                            "u_dryrun"
+                            "u_e2fsck_opt"
+                            "u_errorout"
+                            "u_force"
+                            "u_force_dryrun"
+                            "u_incomplete"
+                            "u_mke2fs_opt"
+                            "u_mke2fs_opt_oddsize"
+                            "u_offset"
+                            "u_onefile_bad"
+                            "u_resize2fs_opt"
+                            "u_revert_64bitmcsum_onefile"
+                            "u_revert_all_onefile"
+                            "u_revert_upgrade_to_64bitmcsum"
+                            "u_tune2fs_opt"
+                            "u_undo_undo"
+                            "u_wrong_fs"))))))
+                 '()))))
     (home-page "https://e2fsprogs.sourceforge.net/")
     (synopsis "Creating and checking ext2/ext3/ext4 file systems")
     (description
@@ -3072,27 +3124,6 @@ early boot when entropy may be low, especially in virtualised environments.")
     (license (list license:bsd-3        ; or
                    license:gpl2+))))
 
-(define-public lsscsi
-  (package
-    (name "lsscsi")
-    (version "0.32")
-    (source (origin
-             (method url-fetch)
-             (uri (string-append
-                   "http://sg.danny.cz/scsi/lsscsi-" version ".tar.xz"))
-             (sha256
-              (base32
-               "0jp458m2b3wckr18qkln69i01152qlwz33zm49103lq8fgx0n6d4"))))
-    (build-system gnu-build-system)
-    (synopsis "Lists information about SCSI or NVMe devices in Linux")
-    (home-page "https://sg.danny.cz/scsi/lsscsi.html")
-    (description
-     "@command{lsscsi} lists SCSI logical units or SCSI targets.  It can
-also list NVMe namespaces or controllers and show the relationship between a
-device's primary node name, its SCSI generic (sg) node name and its kernel
-name.")
-    (license license:gpl2)))
-
 (define-public ebtables
   (package
     (name "ebtables")
@@ -3604,24 +3635,97 @@ or kill them altogether.")
 (define-public fuse
   (package
     (name "fuse")
-    (version "2.9.9")
+    (version "3.10.5")
     (source (origin
               (method url-fetch)
-              (uri (string-append "https://github.com/libfuse/libfuse/releases/"
-                                  "download/fuse-" version
-                                  "/fuse-" version ".tar.gz"))
+              (uri
+               (string-append "https://github.com/libfuse/libfuse/releases/"
+                              "download/fuse-" version
+                              "/fuse-" version ".tar.xz"))
               (sha256
                (base32
-                "1ddlq6kzxilccgbvxjfx80jx6kamgw4sv49phks2zhlcc1frvrnh"))
-              (patches (search-patches "fuse-overlapping-headers.patch"
-                                       "fuse-glibc-2.34.patch"))))
-    (build-system gnu-build-system)
-    (native-inputs
-     (list autoconf automake gettext-minimal libtool))
+                "0rlnnsiw614qcmgy8xz67044gqc1pbvvf2yxjv44lh27bm487qmj"))))
+    (build-system meson-build-system)
     (inputs
      (list bash-minimal util-linux))
     (arguments
-     '(#:configure-flags (list (string-append "MOUNT_FUSE_PATH="
+     `(#:configure-flags
+       ,#~(list
+           (string-append "-Dudevrulesdir=" #$output "/udev/rules.d")
+           "-Duseroot=false")
+       #:tests? #f
+       #:phases
+       ,#~(modify-phases %standard-phases
+            (add-after 'unpack 'set-file-names
+              (lambda* (#:key inputs #:allow-other-keys)
+                ;; libfuse calls out to mount(8) and umount(8).  Make sure
+                ;; it refers to the right ones.
+                (substitute* '("lib/mount_util.c")
+                  (("/bin/(u?)mount" _ maybe-u)
+                   (search-input-file inputs
+                                      (string-append "bin/"
+                                                     maybe-u "mount"))))
+                (substitute* '("util/mount.fuse.c")
+                  (("/bin/sh")
+                   (search-input-file inputs "/bin/sh")))
+
+                ;; This hack leads libfuse to search for 'fusermount' in
+                ;; $PATH, where it may find a setuid-root binary, instead of
+                ;; trying solely $out/sbin/fusermount and failing because
+                ;; it's not setuid.
+                (substitute* "lib/meson.build"
+                  (("-DFUSERMOUNT_DIR=[[:graph:]]+")
+                   "-DFUSERMOUNT_DIR=\"/var/empty\"'"))))
+            (add-after 'unpack 'fix-install
+              (lambda* (#:key inputs #:allow-other-keys)
+                (substitute* '("util/meson.build")
+                  (("install_helper.sh") "true"))
+                (substitute* '("util/meson.build")
+                  (("fuseconf_path = .*")
+                   "fuseconf_path = '/etc/fuse.conf'"))))
+            (add-before 'configure 'set-paths
+              (lambda* (#:key inputs outputs #:allow-other-keys)
+                (let ((dummy-init.d
+                       (string-append (getcwd) "/etc/init.d")))
+                  (setenv "MOUNT_FUSE_PATH"
+                          (string-append #$output "/sbin"))
+                  (setenv "UDEV_RULES_PATH"
+                          (string-append #$output
+                                         "/lib/udev/rules.d"))))))))
+    (supported-systems (delete "i586-gnu" %supported-systems))
+    (home-page "https://github.com/libfuse/libfuse")
+    (synopsis "Support file systems implemented in user space")
+    (description
+     "As a consequence of its monolithic design, file system code for Linux
+normally goes into the kernel itself---which is not only a robustness issue,
+but also an impediment to system extensibility.  FUSE, for \"file systems in
+user space\", is a kernel module and user-space library that tries to address
+part of this problem by allowing users to run file system implementations as
+user-space processes.")
+    (license (list license:lgpl2.1      ; library
+                   license:gpl2+))))    ; command-line utilities
+
+(define-public fuse-2
+  (package
+    (inherit fuse)
+    (name "fuse")
+    (version "2.9.9")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append "https://github.com/libfuse/libfuse/releases/"
+                           "download/fuse-" version
+                           "/fuse-" version ".tar.gz"))
+       (sha256
+        (base32 "1ddlq6kzxilccgbvxjfx80jx6kamgw4sv49phks2zhlcc1frvrnh"))
+       (patches (search-patches "fuse-overlapping-headers.patch"
+                                "fuse-glibc-2.34.patch"))))
+    (build-system gnu-build-system)
+    (native-inputs
+     (list autoconf automake gettext-minimal libtool))
+    (arguments
+     '(#:tests? #t
+       #:configure-flags (list (string-append "MOUNT_FUSE_PATH="
                                               (assoc-ref %outputs "out")
                                               "/sbin")
                                (string-append "INIT_D_PATH="
@@ -3657,84 +3761,12 @@ or kill them altogether.")
              ;; it's not setuid.
              (substitute* "lib/Makefile"
                (("-DFUSERMOUNT_DIR=[[:graph:]]+")
-                "-DFUSERMOUNT_DIR=\\\"/var/empty\\\"")))))))
-    (supported-systems (delete "i586-gnu" %supported-systems))
-    (home-page "https://github.com/libfuse/libfuse")
-    (synopsis "Support file systems implemented in user space")
-    (description
-     "As a consequence of its monolithic design, file system code for Linux
-normally goes into the kernel itself---which is not only a robustness issue,
-but also an impediment to system extensibility.  FUSE, for \"file systems in
-user space\", is a kernel module and user-space library that tries to address
-part of this problem by allowing users to run file system implementations as
-user-space processes.")
-    (license (list license:lgpl2.1                ;library
-                   license:gpl2+))))              ;command-line utilities
-
-(define-public fuse-3
-  (package
-    (inherit fuse)
-    (name "fuse")
-    (version "3.10.5")
-    (source (origin
-              (method url-fetch)
-              (uri
-               (string-append "https://github.com/libfuse/libfuse/releases/"
-                              "download/fuse-" version
-                              "/fuse-" version ".tar.xz"))
-              (sha256
-               (base32
-                "0rlnnsiw614qcmgy8xz67044gqc1pbvvf2yxjv44lh27bm487qmj"))))
-    (build-system meson-build-system)
-    (arguments
-     `(#:configure-flags
-       ,#~(list
-           (string-append "-Dudevrulesdir=" #$output "/udev/rules.d")
-           "-Duseroot=false")
-       #:tests? #f
-       #:phases
-       ,#~(modify-phases %standard-phases
-            (add-after 'unpack 'set-file-names
-              (lambda* (#:key inputs #:allow-other-keys)
-                ;; libfuse calls out to mount(8) and umount(8).  Make sure
-                ;; it refers to the right ones.
-                (substitute* '("lib/mount_util.c")
-                  (("/bin/(u?)mount" _ maybe-u)
-                   (search-input-file inputs
-                                      (string-append "bin/"
-                                                     maybe-u "mount"))))
-                (substitute* '("util/mount.fuse.c")
-                  (("/bin/sh")
-                   (search-input-file inputs "/bin/sh")))
-
-                ;; This hack leads libfuse to search for 'fusermount' in
-                ;; $PATH, where it may find a setuid-root binary, instead of
-                ;; trying solely $out/sbin/fusermount and failing because
-                ;; it's not setuid.
-                (substitute* "lib/meson.build"
-                  (("-DFUSERMOUNT_DIR=[[:graph:]]+")
-                   "-DFUSERMOUNT_DIR=\"/var/empty\"'"))))
-            (add-after 'unpack 'fix-install
-              (lambda* (#:key inputs #:allow-other-keys)
-                (substitute* '("util/meson.build")
-                  (("install_helper.sh") "true"))
-               (substitute* '("util/meson.build")
-                  (("fuseconf_path = .*")
-                   "fuseconf_path = '/etc/fuse.conf'"))))
-            (add-before 'configure 'set-paths
-              (lambda* (#:key inputs outputs #:allow-other-keys)
-                (let ((dummy-init.d
-                       (string-append (getcwd) "/etc/init.d")))
-                  (setenv "MOUNT_FUSE_PATH"
-                          (string-append #$output "/sbin"))
-                  (setenv "UDEV_RULES_PATH"
-                          (string-append #$output
-                                         "/lib/udev/rules.d"))))))))))
+                "-DFUSERMOUNT_DIR=\\\"/var/empty\\\"")))))))))
 
 (define-public unionfs-fuse
   (package
     (name "unionfs-fuse")
-    (version "2.2")
+    (version "3.3")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -3743,15 +3775,26 @@ user-space processes.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1yigh8z1q6iq6yjyq7kl7vpbpjnxjld32apvjaw2bl44pqqg56hh"))))
+                "1wl5m5qnwf3s1792xphr35pb80sx8ybaqi3n3ddi5vvk3qjc4iws"))))
     (build-system cmake-build-system)
-    (native-inputs
-     (list python))
-    (inputs (list fuse))
     (arguments
-     ;; The tests were never actually run ("collected 0 items"), but in recent
-     ;; versions of pytest that causes an error.
-     '(#:tests? #f))
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (replace 'check
+            ;; The epitome of ‘I tried’: run the 2 trivial tests that don't rely
+            ;; on the fuse kernel module being loaded.  All others would fail.
+            (lambda* (#:key tests? #:allow-other-keys)
+              (when tests?
+                (invoke "pytest" "../source/test_all.py" "-k" "test_help")))))))
+    (native-inputs
+     (list pkg-config
+
+           ;; Only for the test ‘suite’.
+           python
+           python-pytest))
+    (inputs
+     (list fuse))
     (home-page "https://github.com/rpodgorny/unionfs-fuse")
     (synopsis "User-space union file system")
     (description
@@ -3764,55 +3807,55 @@ UnionFS-FUSE additionally supports copy-on-write.")
 (define fuse-static
   (package (inherit fuse)
     (name "fuse-static")
-    (source (origin (inherit (package-source fuse))
-              (modules '((guix build utils)))
-              (snippet
-               '(begin
-                  ;; Normally libfuse invokes mount(8) so that /etc/mtab is
-                  ;; updated.  Change calls to 'mtab_needs_update' to 0 so
-                  ;; that it doesn't do that, allowing us to remove the
-                  ;; dependency on util-linux (something that is useful in
-                  ;; initrds.)
-                  (substitute* '("lib/mount_util.c"
-                                 "util/mount_util.c")
-                    (("mtab_needs_update[[:blank:]]*\\([a-z_]+\\)")
-                     "0")
-                    (("/bin/")
-                     ""))
-                  #t))))))
+    (source
+     (origin
+       (inherit (package-source fuse))
+       (modules '((guix build utils)))
+       (snippet
+        #~(begin
+            ;; Normally libfuse invokes mount(8) so that /etc/mtab is updated.
+            ;; Change calls to 'mtab_needs_update' to 0 so that it doesn't do
+            ;; that, allowing us to remove the dependency on util-linux
+            ;; (something that is useful in initrds.)
+            (substitute* "lib/mount_util.c"
+              (("mtab_needs_update[[:blank:]]*\\([a-z_]+\\)") "0")
+              (("/bin/") ""))))))
+    (arguments
+     (substitute-keyword-arguments (package-arguments fuse)
+       ((#:configure-flags flags '())
+        #~(cons "-Ddefault_library=static"
+                #$flags))))))
 
 (define-public unionfs-fuse/static
   (package (inherit unionfs-fuse)
     (synopsis "User-space union file system (statically linked)")
     (name (string-append (package-name unionfs-fuse) "-static"))
-    (source (origin (inherit (package-source unionfs-fuse))
-              (modules '((guix build utils)))
-              (snippet
-               '(begin
-                  ;; Add -ldl to the libraries, because libfuse.a needs that.
-                  (substitute* "src/CMakeLists.txt"
-                    (("target_link_libraries(.*)\\)" _ libs)
-                     (string-append "target_link_libraries"
-                                    libs " dl)")))
-                  #t))))
+    (source
+     (origin
+       (inherit (package-source unionfs-fuse))
+       (modules '((guix build utils)))
+       (snippet
+        #~(begin
+            ;; Add -ldl to the libraries, because libfuse.a needs that.
+            (substitute* "src/CMakeLists.txt"
+              (("target_link_libraries(.*)\\)" _ libs)
+               (string-append "target_link_libraries"
+                              libs " dl)")))))))
     (arguments
-     '(#:tests? #f
-       #:configure-flags '("-DCMAKE_EXE_LINKER_FLAGS=-static")
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'install 'post-install
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let* ((out (assoc-ref outputs "out"))
-                    (exe (string-append out "/bin/unionfs")))
-               ;; By default, 'unionfs' keeps references to
-               ;; $glibc/share/locale and similar stuff.  Remove them.
-               (remove-store-references exe)
-
-               ;; 'unionfsctl' has references to glibc as well.  Since
-               ;; we don't need it, remove it.
-               (delete-file (string-append out "/bin/unionfsctl"))
-               #t))))))
-    (inputs `(("fuse" ,fuse-static)))))
+     (substitute-keyword-arguments (package-arguments unionfs-fuse)
+       ((#:configure-flags flags #~'())
+        #~(cons "-DCMAKE_EXE_LINKER_FLAGS=-static" #$flags))
+       ((#:phases phases #~%standard-phases)
+        #~(modify-phases #$phases
+            (add-after 'install 'post-install
+              (lambda _
+                ;; By default, 'unionfs' keeps references to
+                ;; $glibc/share/locale and similar stuff.  Remove them.
+                (remove-store-references (string-append #$output "/bin/unionfs"))
+                ;; 'unionfsctl' has references to glibc as well.  Since
+                ;; we don't need it, remove it.
+                (delete-file (string-append #$output "/bin/unionfsctl"))))))))
+    (inputs (list fuse-static))))
 
 (define-public sshfs
   (package
@@ -3831,7 +3874,7 @@ UnionFS-FUSE additionally supports copy-on-write.")
      ;; XXX: tests are skipped: FUSE kernel module does not seem to be loaded
      '(#:tests? #f))
     (inputs
-     (list fuse-3 glib))
+     (list fuse glib))
     (native-inputs
      (list pkg-config
            ;; man page
@@ -3862,7 +3905,7 @@ file system is as easy as logging into the server with an SSH client.")
        (sha256
         (base32 "1cy5b6qril9c3ry6fv7ir87s8iyy5vxxmbyx90dm86fbra0vjaf5"))))
     (build-system gnu-build-system)
-    (inputs (list fuse libarchive))
+    (inputs (list fuse-2 libarchive))
     (native-inputs (list pkg-config))
     (home-page "https://www.cybernoia.de/software/archivemount.html")
     (synopsis "Tool for mounting archive files with FUSE")
@@ -4366,7 +4409,7 @@ one to send arbitrary keycodes when a given key is tapped or held.")
 (define-public lvm2
   (package
     (name "lvm2")
-    (version "2.03.11")
+    (version "2.03.22")
     (source (origin
               (method url-fetch)
               (uri (list (string-append "https://sourceware.org/ftp/lvm2/LVM2."
@@ -4375,7 +4418,7 @@ one to send arbitrary keycodes when a given key is tapped or held.")
                                         version ".tgz")))
               (sha256
                (base32
-                "1m4xpda8vbyd89ca0w8nacvnl4j34yzsa625gn990fb5sh84ab44"))
+                "0z6w6bknhwh1n3qfkb5ij6x57q3wjf28lq3l8kh7rkhsplinjnjc"))
               (modules '((guix build utils)))
               (snippet
                '(begin
@@ -4386,9 +4429,7 @@ one to send arbitrary keycodes when a given key is tapped or held.")
                     (("^confdir = .*$")
                      "confdir = @sysconfdir@\n")
                     (("DEFAULT_SYS_DIR = @DEFAULT_SYS_DIR@")
-                     "DEFAULT_SYS_DIR = @sysconfdir@"))
-                  #t))
-              (patches (search-patches "lvm2-static-link.patch"))))
+                     "DEFAULT_SYS_DIR = @sysconfdir@"))))))
     (build-system gnu-build-system)
     (native-inputs
      (list config
@@ -4414,8 +4455,7 @@ one to send arbitrary keycodes when a given key is tapped or held.")
              (setenv "SHELL" (which "sh"))
 
              ;; Replace /bin/sh with the right file name.
-             (patch-makefile-SHELL "make.tmpl")
-             #t)))
+             (patch-makefile-SHELL "make.tmpl"))))
 
        #:configure-flags (list (string-append "--sysconfdir="
                                               (assoc-ref %outputs "out")
@@ -4965,6 +5005,7 @@ in a digital read-out.")
            elfutils
            libiberty                 ;used alongside BDF for symbol demangling
            libunwind                 ;better stack walking
+           libtraceevent
            numactl                   ;for 'perf bench numa mem'
            ;; Documentation.
            libxml2                                ;for $XML_CATALOG_FILES
@@ -5090,62 +5131,27 @@ existing Docker images.  Singularity requires kernel support for container
 isolation or root privileges.")
     (license license:bsd-3)))
 
-(define-public hdparm
-  (package
-    (name "hdparm")
-    (version "9.65")
-    (source (origin
-              (method url-fetch)
-              (uri (string-append "mirror://sourceforge/hdparm/hdparm/"
-                                  "hdparm-" version ".tar.gz"))
-              (sha256
-               (base32
-                "0jssagggg52ssl9kg99m88afghj7bm1854vyf4p96q6h23wjjjfi"))))
-    (build-system gnu-build-system)
-    (arguments
-     (list #:make-flags
-           #~(list (string-append "binprefix=" #$output)
-                   (string-append "manprefix=" #$output)
-                   (string-append "CC=" #$(cc-for-target))
-                   ;; Let Guix strip binaries and not break cross-compilation.
-                   "STRIP=true")
-           #:phases
-           #~(modify-phases %standard-phases
-               (delete 'configure))     ; no configure script
-           #:tests? #f))                ; no test suite
-    (home-page "https://sourceforge.net/projects/hdparm/")
-    (synopsis "View and tune ATA disk drive parameters")
-    (description
-     "@command{hdparm} is a command-line utility to control ATA controllers and
-disk drives.  It can increase performance and/or reliability by careful tuning
-of hardware settings like power and acoustic management, DMA modes, and caching.
-It can also display detailed device information, or be used as a simple
-performance benchmarking tool.
-
-@command{hdparm} provides a command line interface to various Linux kernel
-interfaces provided by the SATA/ATA/SAS @code{libata} subsystem, and the older
-IDE driver subsystem.  Many external USB drive enclosures with SCSI-ATA Command
-Translation (@dfn{SAT}) are also supported.")
-    (license (license:non-copyleft "file://LICENSE.TXT"))))
-
 (define-public libnvme
   (package
     (name "libnvme")
-    (version "1.3")
+    (version "1.5")
     (source (origin
               (method git-fetch)
               (uri (git-reference
                     (url "https://github.com/linux-nvme/libnvme.git")
                     (commit (string-append "v" version))))
               (sha256
-               (base32 "1fngj5acp2sl4162xalq5simfasnika6gy0xrbi41x09wikvhn7y"))
+               (base32 "1wq8bw60l090z2kb717wyzk5wz1jrcn31ykdaa7k9pz9w79v0v67"))
               (file-name (git-file-name name version))))
     (build-system meson-build-system)
+    (outputs (list "out" "doc"))        ; docs are 80% of all output
     (arguments
      (list
-      #:configure-flags #~(list (format #f "-Dhtmldir=~a/share/doc/~a/html"
-                                        #$output #$name)
-                                "-Ddocs-build=true" "-Ddocs=all")))
+      #:configure-flags
+      #~(let ((doc (string-append #$output:doc "/share/doc/" #$name)))
+          (list (string-append "-Dhtmldir=" doc "/html")
+                (string-append "-Drstdir=" doc "/rst")
+                "-Ddocs-build=true" "-Ddocs=all"))))
     (native-inputs (list pkg-config perl python python-sphinx))
     ;; libnvme.pc, libnvme-mi.pc lists these in Requires.private.
     (propagated-inputs (list dbus json-c openssl))
@@ -5160,7 +5166,7 @@ and manage nvme devices on a Linux system.")
 (define-public nvme-cli
   (package
     (name "nvme-cli")
-    (version "2.3")
+    (version "2.5")
     (home-page "https://github.com/linux-nvme/nvme-cli")
     (source (origin
               (method git-fetch)
@@ -5168,13 +5174,14 @@ and manage nvme devices on a Linux system.")
                     (url home-page)
                     (commit (string-append "v" version))))
               (sha256
-               (base32 "1f3bhxh2kr94s6glzibrmgxxgs66qyabn8plnw5y0v9cpi78b3qs"))
+               (base32 "1jv1xir6gm86yyk5846qqkcjhc1bq103zyxf794fznyinh4nhlbg"))
               (file-name (git-file-name name version))))
     (build-system meson-build-system)
+    (outputs (list "out" "doc"))        ; docs make up ~70% of total size
     (arguments
      (list
       #:configure-flags #~(list (format #f "-Dhtmldir=~a/share/doc/~a/html"
-                                        #$output #$name)
+                                        #$output:doc #$name)
                                 "-Ddocs=all")))
     (native-inputs (list pkg-config))
     (inputs (list libnvme json-c zlib))
@@ -5821,7 +5828,7 @@ is flexible, efficient and uses a modular implementation.")
     (native-inputs
      (list pkg-config))
     (inputs
-     (list fuse))
+     (list fuse-2))
     (home-page "https://github.com/relan/exfat")
     (synopsis "Mount exFAT file systems")
     (description
@@ -5844,7 +5851,7 @@ write access to exFAT devices.")
     (native-inputs
      (list pkg-config))
     (inputs
-     (list fuse glib zlib))
+     (list fuse-2 glib zlib))
     (home-page "https://sourceforge.net/projects/fuseiso/")
     (synopsis "Mount ISO file system images")
     (description
@@ -5910,7 +5917,7 @@ and copy/paste text in the console and in xterm.")
 (define-public btrfs-progs
   (package
     (name "btrfs-progs")
-    (version "6.3.2")
+    (version "6.3.3")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://kernel.org/linux/kernel/"
@@ -5918,7 +5925,7 @@ and copy/paste text in the console and in xterm.")
                                   version ".tar.xz"))
               (sha256
                (base32
-                "093wy9dsvp22nwlsk203l91h3yzkccvzdw58n3sicy41sncn3wm9"))))
+                "0vmrjn3dcmka9rj5b81ag9jwprzyicx05h1ccj0x0w02fqah1qsb"))))
     (build-system gnu-build-system)
     (outputs '("out" "static")) ;static versions of the binaries in "out"
     (arguments
@@ -6356,7 +6363,7 @@ from userspace.")
 (define-public tpacpi-bat
   (package
     (name "tpacpi-bat")
-    (version "3.1")
+    (version "3.2")
     (source
      (origin
        (method git-fetch)
@@ -6365,22 +6372,21 @@ from userspace.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0wbaz34z99gqx721alh5vmpxpj2yxg3x9m8jqyivfi1wfpwc2nd5"))))
+        (base32 "0nd8s2bqbhl0sjpflphb4l9ix71p7kvnbvkq4dg9a1v0sxafyygm"))))
     (build-system gnu-build-system)
     (arguments
      `(#:tests? #f                      ; no test target
        #:phases
        (modify-phases %standard-phases
          (add-after 'unpack 'refer-to-inputs
-           (lambda _
+           (lambda* (#:key inputs #:allow-other-keys)
              (substitute* "tpacpi-bat"
                (("cat ")
-                (format #f "~a " (which "cat")))
+                (string-append (search-input-file inputs "bin/cat") " "))
                ;; tpacpi-bat modprobes the acpi_call kernel module if it's not
                ;; loaded.  That's the administrator's prerogative; disable it.
                (("system \"(modprobe .*)\"" _ match)
-                (format #f "die \"Please run ‘~a’ first.\\n\"" match)))
-             #t))
+                (format #f "die \"Please run ‘~a’ first.\\n\"" match)))))
          (delete 'configure)            ; nothing to configure
          (delete 'build)                ; nothing to build
          (replace 'install
@@ -6395,10 +6401,10 @@ from userspace.")
                            (let ((target (string-append doc "/" file)))
                              (mkdir-p (dirname target))
                              (copy-recursively file target)))
-                         (list "battery_asl" "examples" "README.md"))
-               #t))))))
+                         (list "battery_asl" "examples" "README.md"))))))))
     (inputs
-     (list perl))
+     (list coreutils-minimal
+           perl))
     (home-page "https://github.com/teleshoes/tpacpi-bat")
     (synopsis "ThinkPad battery charge controller")
     (description
@@ -6423,24 +6429,22 @@ supported.")
     (source (package-source linux-libre))
     (build-system gnu-build-system)
     (arguments
-     `(#:tests? #f                      ; no test suite
-       #:make-flags
-       (list (string-append "CC=" ,(cc-for-target))
-             (string-append "INSTALL_ROOT=" (assoc-ref %outputs "out"))
-             "BINDIR=bin")
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'unpack 'enter-subdirectory
-           (lambda _
-             (chdir "tools/thermal/tmon")
-             #t))
-         (add-after 'install 'install-man-page
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let* ((out (assoc-ref outputs "out"))
-                    (man8 (string-append out "/share/man/man8")))
-               (install-file "tmon.8" man8)
-               #t)))
-         (delete 'configure))))         ; no configure script
+     (list
+      #:tests? #f                       ; no test suite
+      #:make-flags
+      #~(list (string-append "CC=" #$(cc-for-target))
+              (string-append "INSTALL_ROOT=" #$output)
+              "BINDIR=bin")
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'enter-subdirectory
+            (lambda _
+              (chdir "tools/thermal/tmon")))
+          (add-after 'install 'install-man-page
+            (lambda _
+              (let ((man8 (string-append #$output "/share/man/man8")))
+                (install-file "tmon.8" man8))))
+          (delete 'configure))))        ; no configure script
     (inputs
      (list ncurses))
     (home-page (package-home-page linux-libre))
@@ -6520,7 +6524,7 @@ invocations of itself.")
                              "@sbindir@"))))))
     (build-system gnu-build-system)
     (inputs (list util-linux ; libuuid
-                  fuse))
+                  fuse-2))
     (native-inputs (list pkg-config))
     (arguments
      '(#:configure-flags (list "--disable-static"
@@ -7253,48 +7257,50 @@ under OpenGL graphics workloads.")
     (license license:gpl3)))
 
 (define-public efivar
-  (package
-    (name "efivar")
-    (version "38")
-    (source (origin
-              (method url-fetch)
-              (uri (string-append "https://github.com/rhboot/" name
-                                  "/releases/download/" version "/" name
-                                  "-" version ".tar.bz2"))
-              (sha256
-               (base32
-                "0jaka7b4lccswjqiv4liclkj6w78gildg7vd6dnw3wf595pfs67h"))
-              (patches
-               (search-patches "efivar-211.patch"))))
-
-    (build-system gnu-build-system)
-    (arguments
-     (list
-      ;; Tests require a UEFI system and is not detected in the chroot.
-       #:tests? #f
-       #:make-flags
-       #~(list (string-append "prefix=" #$output)
-               (string-append "libdir=" #$output "/lib")
-               (string-append "CC=" #$(cc-for-target))
-               (string-append "LDFLAGS=-Wl,-rpath=" #$output "/lib"))
-       #:phases
-       #~(modify-phases %standard-phases
-           (add-after 'unpack 'build-deterministically
-             (lambda _
-               (substitute* "src/include/defaults.mk"
-                 ;; Don't use -march=native.
-                 (("-march=native")
-                  ""))))
-           (delete 'configure))))
-    (native-inputs
-     (list mandoc pkg-config))
-    (inputs
-     (list popt))
-    (home-page "https://github.com/rhboot/efivar")
-    (synopsis "Tool and library to manipulate EFI variables")
-    (description "This package provides a library and a command line
+  ;; XXX: 15622b7e5761f3dde3f0e42081380b2b41639a48 fixes compilation on i686.
+  ;; ca48d3964d26f5e3b38d73655f19b1836b16bd2d fixes cross-compilation.
+  (let ((commit "ca48d3964d26f5e3b38d73655f19b1836b16bd2d")
+        (revision "0"))
+    (package
+      (name "efivar")
+      (version (git-version "38" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/rhboot/efivar")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "0zsab3hcv1v53cxwkvsk09ifnwhs48a6xa3kxlwvs87yxswspvi8"))))
+      (build-system gnu-build-system)
+      (arguments
+       (list
+        ;; Tests require a UEFI system and is not detected in the chroot.
+        #:tests? #f
+        #:make-flags #~(list (string-append "prefix="
+                                            #$output)
+                             (string-append "libdir="
+                                            #$output "/lib")
+                             (string-append "CC="
+                                            #$(cc-for-target)) "HOSTCC=gcc"
+                             (string-append "LDFLAGS=-Wl,-rpath="
+                                            #$output "/lib"))
+        #:phases #~(modify-phases %standard-phases
+                     (add-after 'unpack 'build-deterministically
+                       (lambda _
+                         (substitute* "src/include/defaults.mk"
+                           ;; Don't use -march=native.
+                           (("-march=native")
+                            ""))))
+                     (delete 'configure))))
+      (native-inputs (list mandoc pkg-config))
+      (inputs (list popt))
+      (home-page "https://github.com/rhboot/efivar")
+      (synopsis "Tool and library to manipulate EFI variables")
+      (description "This package provides a library and a command line
 interface to the variable facility of UEFI boot firmware.")
-    (license license:lgpl2.1+)))
+      (license license:lgpl2.1+))))
 
 (define-public efibootmgr
   (package
@@ -7661,7 +7667,7 @@ every time the power supply source is changed.")
             (lambda* (#:key inputs #:allow-other-keys)
               (let ((defaults.conf
                       (search-input-file inputs "/share/tlp/defaults.conf"))
-                    (lspci (search-input-file inputs "/sbin/lspci"))
+                    (lspci (search-input-file inputs "/bin/lspci"))
                     (lsusb (search-input-file inputs "/bin/lsusb"))
                     (tlp-stat (search-input-file inputs "/bin/tlp-stat")))
                 (with-directory-excursion "tlpui"
@@ -8381,14 +8387,14 @@ NexGen, Rise, and SiS CPUs.")
           "1pm68agkhrwgrplrfrnbwdcvx5lrivdmqw8pb5gdmm3xppnryji1"))))
     (build-system gnu-build-system)
     (inputs
-     (list file fuse libmtp))
+     (list file fuse-2 libmtp))
     (native-inputs
      (list pkg-config))
     (home-page "https://github.com/JasonFerrara/jmtpfs")
     (synopsis "Use a FUSE file system to access data over MTP")
-    (description "jmtpfs uses FUSE (file system in userspace) to provide access
-to data over the Media Transfer Protocol (MTP).  Unprivileged users can mount
-the MTP device as a file system.")
+    (description "jmtpfs uses @acronym{FUSE, File system in USEr space} to
+provide access to data over @acronym{MTP, the Media Transfer Protocol}.
+Unprivileged users can mount the MTP device as a file system.")
     (license license:gpl3)))
 
 (define-public procenv
@@ -8854,7 +8860,7 @@ IP addresses and routes, and configure IPsec.")
 (define-public libinih
   (package
     (name "libinih")
-    (version "56")
+    (version "57")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -8863,7 +8869,7 @@ IP addresses and routes, and configure IPsec.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1fjqvf56yij15lgwj58dcmxlq5n98gzpbss0nnn1d2i5j7gf4kgf"))))
+                "03hpyahdkipm5wfalj2xkz6y9ncd9zrlhnf7vap6lr56jj2fz2bb"))))
     (build-system meson-build-system)
     ;; Install static libraries for use by the initrd's xfsprogs/static.
     (outputs (list "out" "static"))
@@ -9206,7 +9212,7 @@ types and interfaces and translates so that the X server can use them.")
 (define-public pipewire
   (package
     (name "pipewire")
-    (version "0.3.70")
+    (version "0.3.77")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -9215,7 +9221,7 @@ types and interfaces and translates so that the X server can use them.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1n74rrbwymm89ri4daa4v092f4b81wrak4vg685xfz2wl89p64n6"))))
+                "11jdd9ljm6967cdp97qqf5fa02ad69kdgk3212ap5gfndky2h43m"))))
     (build-system meson-build-system)
     (arguments
      (list
@@ -9240,6 +9246,7 @@ types and interfaces and translates so that the X server can use them.")
                   gstreamer
                   jack-2
                   ldacbt
+                  libcamera
                   libfdk
                   libfreeaptx
                   libsndfile
@@ -9298,7 +9305,7 @@ tools for managing PipeWire.")
 (define-public ell
   (package
     (name "ell")
-    (version "0.56")
+    (version "0.57")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -9307,7 +9314,7 @@ tools for managing PipeWire.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "084mc9377k2a61wyqnfnsgfrdvv1rinn9wzw8l8crip0hlikn938"))))
+                "1vpzz0z6q0d3h41aqajaw0dlpkdnmjcppmlwbb558hvj40q5dpzm"))))
     (build-system gnu-build-system)
     (arguments
      ;; Tests launch dbus-daemon instances that all try to bind to
@@ -9841,7 +9848,7 @@ older system-wide @file{/sys} interface.")
 (define-public libtraceevent
   (package
     (name "libtraceevent")
-    (version "1.7.1")
+    (version "1.7.3")
     (source
      (origin
        (method git-fetch)
@@ -9850,30 +9857,67 @@ older system-wide @file{/sys} interface.")
              (commit (string-append name "-" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32
-         "1kbl11lqh8cadi6r3qqxx68idr7597l6i50pr5p5mdgsf6k2i83c"))
+        (base32 "06mw2f0xnk6dy9w2z0n4dz7lnm02qfsmnmj2h24453qxlw57x0d6"))
        (modules '((guix build utils)))
        (snippet
         #~(begin
-            (substitute* "Makefile"
-              (("/bin/pwd") "pwd"))
-            (substitute* "scripts/utils.mk"
-              (("/bin/pwd") "pwd"))))))
+            (substitute* (list "Makefile" "scripts/utils.mk")
+              (("/bin/(pwd)" _ command) command))))))
     (build-system gnu-build-system)
     (arguments
      (list
-      #:tests? #f ;no test suite
+      #:tests? #f                       ; no test suite
       #:make-flags
       #~(list
          (string-append "pkgconfig_dir=" #$output "/lib/pkgconfig")
          (string-append "prefix=" #$output))
       #:phases
       #~(modify-phases %standard-phases
-          (delete 'configure))))
+          (delete 'configure))))        ; no configure script
     (home-page "https://git.kernel.org/pub/scm/libs/libtrace/libtraceevent.git/")
     (synopsis "Linux kernel trace event library")
-    (description "This package provides library to parse raw trace event
-formats.")
+    (description
+     "This library parses raw Linux kernel trace event formats.")
+    (license (list license:gpl2
+                   license:lgpl2.1))))
+
+(define-public libtracefs
+  (package
+    (name "libtracefs")
+    (version "1.7.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git")
+             (commit (string-append name "-" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0v896n3q0df0nxx5drbwyaqhrqiyxl06rvrdw3gp2r37awa9g1zb"))
+       (modules '((guix build utils)))
+       (snippet
+        #~(begin
+            (substitute* (list "Makefile" "scripts/utils.mk")
+              (("/bin/(pwd)" _ command) command))))))
+    (build-system gnu-build-system)
+    (arguments
+     (list
+      #:tests? #f                       ; no test suite
+      #:make-flags
+      #~(list
+         (string-append "CC=" #$(cc-for-target))
+         (string-append "pkgconfig_dir=" #$output "/lib/pkgconfig")
+         (string-append "prefix=" #$output))
+      #:phases
+      #~(modify-phases %standard-phases
+          (delete 'configure))))        ; no configure script
+    (native-inputs (list pkg-config))
+    (inputs (list libtraceevent))
+    (home-page "https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/")
+    (synopsis "Linux kernel trace file system library")
+    (description
+     "This library provides APIs to access the Linux kernel's trace file
+system.")
     (license (list license:gpl2
                    license:lgpl2.1))))
 
@@ -10048,7 +10092,7 @@ with the value and the symbolic name.")
 (define-public tp-smapi-module
   (package
     (name "tp-smapi-module")
-    (version "0.43")
+    (version "0.44")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -10057,7 +10101,7 @@ with the value and the symbolic name.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1rjb0njckczc2mj05cagvj0lkyvmyk6bw7wkiinv81lw8m90g77g"))))
+                "0kzbks07bh5jbi1n311zp9cbp1xxyzi7nys8wq1k0k5ig81h9w6k"))))
     (build-system linux-module-build-system)
     (arguments
      `(#:tests? #f))                    ;there are none.
@@ -10164,6 +10208,42 @@ suggestions from various sources, including:
 @end itemize\n
 This tool supports checking Kconfig options and kernel cmdline parameters.")
     (license license:gpl3)))
+
+(define-public firejail
+  (package
+    (name "firejail")
+    (version "0.9.72")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append
+                    "https://github.com/netblue30/firejail/releases/download/" version
+                    "/firejail-" version ".tar.xz" ))
+              (sha256
+               (base32
+                "1x77xy1mwfgjrcsymdda82bjnqgl7z2yymcb10mzd1zwik27gqc2"))))
+    (arguments
+     (list #:phases
+           #~(modify-phases %standard-phases
+               (replace 'check
+                 (lambda* (#:key tests? #:allow-other-keys)
+                   (when tests?
+                     (with-directory-excursion "test"
+                       (invoke "make"))))))))
+    (build-system gnu-build-system)
+    (inputs
+     (list apparmor xdg-dbus-proxy))
+    (synopsis "Linux namespaces sandbox program")
+    (description
+     "Firejail is a SUID sandbox program that reduces the risk of security
+breaches by restricting the running environment of untrusted applications
+using Linux namespaces, seccomp-bpf and Linux capabilities.  The software
+includes sandbox profiles for a number of common Linux programs.  Firejail
+should be added to the list of setuid programs in the system configuration to
+work properly.")
+    (home-page "https://github.com/netblue30/firejail")
+    (supported-systems
+     (filter (cut string-suffix? "-linux" <>) %supported-systems))
+    (license license:gpl2+)))
 
 (define-public edac-utils
   (package
@@ -10284,3 +10364,39 @@ error detection and correction (EDAC).")
 against the several transient execution CVEs that were published since early
 2018, and gives guidance as to how to mitigate them.")
     (license license:gpl3)))
+
+(define-public csmith
+  (package
+    (name "csmith")
+    (version "2.3.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/csmith-project/csmith")
+                    (commit (string-append "csmith-" version))))
+              (sha256
+               (base32
+                "0nhrsnv6cny14xz68qb1h30fbwc05adkisk51p3x63mydm60ddl3"))))
+    (build-system gnu-build-system)
+    (native-inputs
+     (list autoconf automake libtool m4 perl))
+    (arguments
+     (list
+      #:tests? #f                       ;no test suite
+      ;; Do not install headers under 'include/csmith-VERSION' but in
+      ;; 'include/csmith'.
+      #:phases
+      `(modify-phases %standard-phases
+         (add-after 'unpack 'patch-includedir
+           (lambda _
+             (substitute* "runtime/Makefile.am"
+               (("\\$\\(includedir\\)/\\$\\(PACKAGE\\)-\\$\\(VERSION\\)")
+                "$(includedir)/$(PACKAGE)"))))
+         (add-before 'bootstrap 'force-bootstrap
+           (lambda _
+             (delete-file "configure"))))))
+    (home-page "https://github.com/csmith-project/csmith")
+    (synopsis "Random generator of C programs")
+    (description "The primary purpose of Csmith is to find compiler bugs with
+random programs using differential testing.")
+    (license license:bsd-4)))

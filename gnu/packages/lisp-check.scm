@@ -9,7 +9,8 @@
 ;;; Copyright © 2021, 2023 Sharlatan Hellseher <sharlatanus@gmail.com>
 ;;; Copyright © 2021 Charles Jackson <charles.b.jackson@protonmail.com>
 ;;; Copyright © 2022 jgart <jgart@dismail.de>
-;;; Copyright © 2022 André A. Gomes <andremegafone@gmail.com>
+;;; Copyright © 2022, 2023 André A. Gomes <andremegafone@gmail.com>
+;;; Copyright © 2023 Cage <cage-dev@twistfold.it>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -355,26 +356,26 @@ experience.")
   (sbcl-package->ecl-package sbcl-clunit))
 
 (define-public sbcl-clunit2
-  (let ((commit "5e28343734eb9b7aee39306a614af92c1062d50b")
-        (revision "1"))
+  (let ((commit "c3159275a6c5af166e60b592c3b7e22eaa69c048")
+        (revision "2"))
     (package
       (name "sbcl-clunit2")
-      (version (git-version "0.2.4" revision commit))
+      (version (git-version "0.5.2" revision commit))
       (source
        (origin
          (method git-fetch)
          (uri (git-reference
-               (url "https://notabug.org/cage/clunit2.git")
+               (url "https://codeberg.org/cage/clunit2.git")
                (commit commit)))
-         (file-name (git-file-name name version))
+         (file-name (git-file-name "cl-clunit2" version))
          (sha256
-          (base32 "1ngiapfki6nm8a555mzhb5p7ch79i3w665za5bmb5j7q34fy80vw"))))
+          (base32 "0n92z98dqfik3kfp25nz7yqycx4bpxlqbn69i5skcdnrj2ywmv01"))))
       (build-system asdf-build-system/sbcl)
       (synopsis "Unit testing framework for Common Lisp")
       (description
-       "CLUnit is a Common Lisp unit testing framework.  It is designed to be
+       "CLUnit2 is a Common Lisp unit testing framework.  It is designed to be
 easy to use so that you can quickly start testing.")
-      (home-page "https://notabug.org/cage/clunit2")
+      (home-page "https://codeberg.org/cage/clunit2")
       (license license:expat))))
 
 (define-public cl-clunit2
@@ -696,29 +697,31 @@ testing.  It is an extension of the library written by Chris Riesbeck.")
 (define-public sbcl-lisp-unit2
   ;; There is a cyclical dependency between symbol-munger and lisp-unit2.
   ;; See https://github.com/AccelerationNet/symbol-munger/issues/4
-  (package
-    (name "sbcl-lisp-unit2")
-    (version "0.9.4")
-    (source
-     (origin
-       (method git-fetch)
-       (uri (git-reference
-             (url "https://github.com/AccelerationNet/lisp-unit2")
-             (commit version)))
-       (file-name (git-file-name "cl-lisp-unit2" version))
-       (sha256
-        (base32 "0dnq0qvbsn7ciknvmwzfjnimlzq1gdkv5xd87agmhxm1cpm1ksz0"))))
-    (build-system asdf-build-system/sbcl)
-    (inputs
-     (list sbcl-alexandria sbcl-cl-interpol sbcl-iterate
-           sbcl-symbol-munger))
-    (synopsis "Test Framework for Common Lisp")
-    (description
-     "LISP-UNIT2 is a Common Lisp library that supports unit testing in the
+  (let ((commit "b5aa17b298cf2f669f4c0262c471e1ee4ab4699a")
+        (revision "0"))
+    (package
+      (name "sbcl-lisp-unit2")
+      (version (git-version "0.9.4" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/AccelerationNet/lisp-unit2")
+               (commit commit)))
+         (file-name (git-file-name "cl-lisp-unit2" version))
+         (sha256
+          (base32 "140nn22n1xv3qaash3x6h2h7xmys44s3f42b7bakfhpc4qlx0b69"))))
+      (build-system asdf-build-system/sbcl)
+      (inputs
+       (list sbcl-alexandria sbcl-cl-interpol sbcl-iterate
+             sbcl-symbol-munger))
+      (synopsis "Test Framework for Common Lisp")
+      (description
+       "LISP-UNIT2 is a Common Lisp library that supports unit testing in the
 style of JUnit for Java.  It is a new version of the lisp-unit library written
 by Chris Riesbeck.")
-    (home-page "https://github.com/AccelerationNet/lisp-unit2")
-    (license license:expat)))
+      (home-page "https://github.com/AccelerationNet/lisp-unit2")
+      (license license:expat))))
 
 (define-public cl-lisp-unit2
   (sbcl-package->cl-source-package sbcl-lisp-unit2))

@@ -78,7 +78,8 @@
   #:export (glibc
             libc-for-target
             make-ld-wrapper
-            libiconv-if-needed))
+            libiconv-if-needed
+            %final-inputs))
 
 ;;; Commentary:
 ;;;
@@ -134,21 +135,17 @@ command-line arguments, multiple languages, and so on.")
                                  (string-append bin "/fgrep"))
                 (("^exec grep")
                  (string-append "exec " bin "/grep"))))))
-        ,@(if (target-hurd?)
-              '((add-before 'check 'skip-triple-backref-test
+        ,@(if (system-hurd?)
+              '((add-before 'check 'skip-test
                   (lambda _
-                    ;; This test is marked as malfunctioning on glibc systems
-                    ;; due to
-                    ;; <https://sourceware.org/bugzilla/show_bug.cgi?id=11053>
-                    ;; and it triggers a segfault with glibc 2.33 on GNU/Hurd.
-                    ;; Skip it.
-                    (substitute* "tests/triple-backref"
-                      (("^warn_" all)
-                       (string-append "exit 77\n" all))))))
-              '()))
-      #:make-flags ,(if (target-hurd?)
-                        ''("XFAIL_TESTS=test-perror2 equiv-classes") ;XXX
-                        ''())))
+                    (substitute*
+                        ;; This test hangs
+                        '("tests/hash-collision-perf"
+                          ;; This test fails
+                          "tests/file")
+                      (("^#!.*" all)
+                       (string-append all "exit 77;\n"))))))
+              '()))))
    (synopsis "Print lines matching a pattern")
    (description
      "grep is a tool for finding text inside files.  Text is found by
@@ -187,10 +184,6 @@ including, for example, recursive directory searching.")
                     "  CONFIG_HEADER='$(CONFIG_HEADER)'\t\t\\\n")))))
             (modules '((guix build utils)))))
    (build-system gnu-build-system)
-   (arguments
-    `(#:make-flags ,(if (target-hurd?)
-                        ''("XFAIL_TESTS=test-perror2")
-                        ''())))
    (synopsis "Stream editor")
    (native-inputs (list perl))                    ;for tests
    (description
@@ -311,9 +304,15 @@ differences.")
             (patches (search-patches "diffutils-fix-signal-processing.patch"))))
    (build-system gnu-build-system)
    (arguments
-    `(#:make-flags ,(if (target-hurd?)
-                        ''("XFAIL_TESTS=test-perror2 large-subopt")
-                        ''())))
+    (list
+     #:phases (if (system-hurd?)
+                  #~(modify-phases %standard-phases
+                      (add-after 'unpack 'skip-tests
+                        (lambda _
+                          (substitute* "tests/large-subopt"
+                            (("^#!.*" all)
+                             (string-append all "exit 77;\n"))))))
+                  #~%standard-phases)))
    (native-inputs (list perl))
    (synopsis "Comparing and merging files")
    (description
@@ -348,10 +347,16 @@ interactive means to merge two files.")
                      (substitute* '("tests/xargs/verbose-quote.sh"
                                     "tests/find/exec-plus-last-file.sh")
                        (("#!/bin/sh")
-                        (string-append "#!" (which "sh")))))))
-      #:make-flags ,(if (target-hurd?)
-                        ''("XFAIL_TESTS=test-strerror_r")
-                        ''())))
+                        (string-append "#!" (which "sh"))))))
+                 ,@(if (system-hurd?)
+                       '((add-after 'unpack 'skip-tests
+                           (lambda _
+                             (substitute*
+                                 ;; This test fails non-deterministically
+                                 "gnulib-tests/test-strerror_r.c"
+                               (("(^| )main *\\(.*" all)
+                                (string-append all "{\n  exit (77);//"))))))
+                       '()))))
    (synopsis "Operating on files matching given criteria")
    (description
     "Findutils supplies the basic file directory searching utilities of the
@@ -397,23 +402,13 @@ used to apply commands with arbitrarily long arguments.")
    (outputs '("out" "debug"))
    (arguments
     `(#:parallel-build? #f            ; help2man may be called too early
-      ,@(if (target-hurd?)
+      ,@(if (system-hurd?)
             '(#:make-flags            ; these tests fail deterministically
-              (list (string-append "XFAIL_TESTS=tests/misc/env-S.pl"
-                                   " tests/misc/kill.sh"
-                                   " tests/misc/nice.sh"
-                                   " tests/misc/pwd-long.sh"
-                                   " tests/split/fail.sh"
-
-                                   ;; /hurd/fifo issue:
-                                   ;; <https://issues.guix.gnu.org/58803>.
-                                   " tests/df/unreadable.sh"
-
+              (list (string-append "XFAIL_TESTS="
                                    ;; Gnulib tests.
                                    " test-fdutimensat"
                                    " test-futimens"
                                    " test-linkat"
-                                   " test-perror2"
                                    " test-renameat"
                                    " test-renameatu"
                                    " test-utimensat")))
@@ -435,10 +430,35 @@ used to apply commands with arbitrarily long arguments.")
                        (("#!/bin/sh") (string-append "#!" (which "sh"))))))
                  (add-after 'unpack 'remove-tests
                    (lambda _
-                     ,@(if (target-hurd?)
-                           '((substitute* "Makefile.in"
-                               ;; this test hangs
-                               (("^ *tests/misc/timeout-group.sh.*") ""))
+                     ,@(if (system-hurd?)
+                           '((substitute*
+                                 ;; These tests hang
+                                 '("tests/cp/sparse-to-pipe.sh"
+                                   "tests/split/fail.sh"
+                                   ;; These tests error
+                                   "tests/dd/nocache.sh"
+                                   ;; These tests fail
+                                   "tests/cp/sparse.sh"
+                                   "tests/cp/special-f.sh"
+                                   "tests/dd/bytes.sh"
+                                   "tests/dd/stats.sh"
+                                   "tests/ls/dangle.sh"
+                                   "tests/ls/follow-slink.sh"
+                                   "tests/ls/hyperlink.sh"
+                                   "tests/ls/infloop.sh"
+                                   "tests/ls/inode.sh"
+                                   "tests/ls/selinux-segfault.sh"
+                                   "tests/misc/env-S.pl"
+                                   "tests/misc/factor-parallel.sh"
+                                   "tests/misc/ls-misc.pl"
+                                   "tests/misc/nice.sh"
+                                   "tests/misc/pwd-long.sh"
+                                   "tests/misc/shred-passes.sh"
+                                   "tests/misc/stat-slash.sh"
+                                   "tests/rm/fail-eperm.xpl"
+                                   "tests/split/filter.sh")
+                               (("^#!.*" all)
+                                (string-append all "exit 77;\n")))
                              (substitute* "gnulib-tests/Makefile.in"
                                ;; This test sometimes fails and sometimes
                                ;; passes, but it does this consistently, so
@@ -947,6 +967,10 @@ the store.")
                      ;; library is empty by some criterion (such as their file
                      ;; size equaling eight bytes) rather than hardcoding them
                      ;; by name.
+
+                     ;; XXX: We forgot librt.a for the current version!  In
+                     ;; the meantime, gcc-toolchain provides it, but remove
+                     ;; that fix once librt.a is added here.
                      (define empty-static-libraries
                        '("libpthread.a" "libdl.a" "libutil.a" "libanl.a"))
                      (define (empty-static-library? file)
@@ -1629,10 +1653,10 @@ package needs iconv ,@(libiconv-if-needed) should be added."
          (proc  (module-ref iface 'canonical-package)))
     (proc package)))
 
-(define-public (%final-inputs)
+(define* (%final-inputs #:optional (system (%current-system)))
   "Return the list of \"final inputs\"."
   ;; Avoid circular dependency by lazily resolving 'commencement'.
   (let ((iface (resolve-interface '(gnu packages commencement))))
-    ((module-ref iface '%final-inputs) (%current-system))))
+    ((module-ref iface '%final-inputs) system)))
 
 ;;; base.scm ends here

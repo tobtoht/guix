@@ -9,7 +9,7 @@
 ;;; Copyright © 2016, 2020 Marius Bakke <mbakke@fastmail.com>
 ;;; Copyright © 2017 Vasile Dumitrascu <va511e@yahoo.com>
 ;;; Copyright © 2017 Gregor Giesen <giesen@zaehlwerk.net>
-;;; Copyright © 2018, 2022 Oleg Pykhalov <go.wigust@gmail.com>
+;;; Copyright © 2022 Oleg Pykhalov <go.wigust@gmail.com>
 ;;; Copyright © 2019 Mathieu Othacehe <m.othacehe@gmail.com>
 ;;; Copyright © 2019 Chris Marusich <cmmarusich@gmail.com>
 ;;; Copyright © 2019 Rutger Helling <rhelling@mykolab.com>
@@ -91,8 +91,7 @@
   #:use-module (guix build-system copy)
   #:use-module (guix build-system glib-or-gtk)
   #:use-module (guix build-system gnu)
-  #:use-module (guix build-system meson)
-  #:use-module (guix build-system trivial))
+  #:use-module (guix build-system meson))
 
 (define-public cloudflare-cli
   (let ((commit "2d986d3ec1b0e3158c4bd40e8918947cb74aa392")
@@ -845,7 +844,7 @@ Extensions} (DNSSEC).")
 (define-public knot
   (package
     (name "knot")
-    (version "3.2.8")
+    (version "3.2.9")
     (source
      (origin
        (method git-fetch)
@@ -854,7 +853,7 @@ Extensions} (DNSSEC).")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "05yhm1n0zphcvicy2brlbv3azp4lvdjprcqf3lybz7mzd6ghr25c"))
+        (base32 "1kxmplngnlpd6j9nbzq1c1z02ipd38ypnppy7frg5crn83phfbxm"))
        (modules '((guix build utils)))
        (snippet
         '(begin
@@ -1067,72 +1066,6 @@ LuaJIT, both a resolver library and a daemon.")
                    license:cc0
                    license:lgpl2.0))))
 
-(define-public ddclient
-  (package
-    (name "ddclient")
-    (version "3.10.0")
-    (source
-     (origin
-       (method git-fetch)
-       (uri (git-reference
-             (url "https://github.com/ddclient/ddclient")
-             (commit (string-append "v" version))))
-       (file-name (git-file-name name version))
-       (sha256
-        (base32 "0l87d72apwrg6ipc9gix5gv64d4hr1ykxmss8x4r8d8mgj6j8rf1"))
-       (modules '((guix build utils)))
-       (snippet
-        ;; XXX: erroneous version value, this is fixed in master
-        #~(begin
-            (substitute* "configure.ac"
-              (("3.10.0_2") #$version))))
-       (patches (search-patches "ddclient-skip-test.patch"))))
-    (build-system gnu-build-system)
-    (native-inputs
-     (list autoconf automake libtool
-           perl-test-warnings perl-test-mockmodule))
-    (inputs
-     (list inetutils ; logger
-           net-tools
-           bash-minimal                           ;for 'wrap-program'
-           perl
-           perl-digest-sha1
-           perl-io-socket-ssl
-           perl-io-socket-inet6  ;; XXX: this is likely to be removed in a future ddclient release
-                                 ;; https://github.com/ddclient/ddclient/issues/461
-           perl-json))
-    (arguments
-     (list
-      #:configure-flags #~(list "--localstatedir=/var")
-      #:phases
-      #~(modify-phases %standard-phases
-          (replace 'install
-            (lambda _
-              ;; XXX: Do not create /var
-              (invoke "make" "localstatedir=/tmp/discard" "install")))
-          (add-after 'wrap 'wrap-ddclient
-            (lambda* (#:key inputs #:allow-other-keys)
-              (wrap-program (string-append #$output "/bin/ddclient")
-                `("PERL5LIB" ":" prefix ,(string-split (getenv "PERL5LIB") #\:))
-                `("PATH" prefix ,(map (lambda (x)
-                                        (string-append (assoc-ref inputs x) "/bin"))
-                                      '("inetutils" "net-tools")))))))))
-    (native-search-paths
-     (list $SSL_CERT_DIR $SSL_CERT_FILE))
-    (home-page "https://ddclient.net/")
-    (synopsis "Address updating utility for dynamic DNS services")
-    (description "This package provides a client to update dynamic IP
-addresses with several dynamic DNS service providers, such as
-@uref{https://www.dyndns.com/account/login.html,DynDNS.com}.
-
-This makes it possible to use a fixed hostname (such as myhost.dyndns.org) to
-access a machine with a dynamic IP address.
-
-The client supports both dynamic and (near) static services, as well as MX
-record and alternative name management.  It caches the address, and only
-attempts the update when it has changed.")
-    (license license:gpl2+)))
-
 (define-public hnsd
    (package
      (name "hnsd")
@@ -1340,7 +1273,7 @@ nameservers other than libc.")
 (define-public smartdns
   (package
     (name "smartdns")
-    (version "42")
+    (version "43")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -1352,18 +1285,43 @@ nameservers other than libc.")
                           ((".*SYSTEMDSYSTEMUNITDIR.*") "")))
               (sha256
                (base32
-                "17j0h5l7gig6rzk8b9180jwrx5khpnrylacjxvnnpgsi2725k8lq"))))
+                "0s789l6i4yirmarg80mknc1pp65rz01ky9f7gidgclkfcwzz41l3"))))
     (build-system gnu-build-system)
     (arguments
-     (list #:tests? #f                  ;no tests
+     (list #:test-target "test"
            #:make-flags
            #~(list (string-append "CC=" #$(cc-for-target))
                    (string-append "DESTDIR=" #$output)
-                   "PREFIX=''")
+                   "PREFIX=''"
+                   (string-append "VER=" #$version))
            #:phases
            #~(modify-phases %standard-phases
-               (delete 'configure))))
+               (delete 'configure)
+               (add-after 'unpack 'skip-unavailable-tests
+                 (lambda _
+                   (with-directory-excursion "test/cases"
+                     ;; Tests try to open /etc/resolv.conf
+                     (substitute* "test-bind.cc"
+                       ;; Bind.tls
+                       (("smartdns::Server server_wrap;" all)
+                        (string-append "GTEST_SKIP();" all)))
+                     ;; Tests use ICMP ping.
+                     (substitute* (find-files ".")
+                       ((".*PING_TYPE_ICMP.*" all)
+                        (string-append "GTEST_SKIP();" all)))
+                     (delete-file "test-speed-check.cc"))))
+               ;; Compiled .o files in build phase can't be used for tests.
+               (add-after 'skip-unavailable-tests 'prepare-test-dir
+                 (lambda _
+                   (copy-recursively "." "../test")))
+               (add-before 'check 'enter-test-dir
+                 (lambda _
+                   (chdir "../test/test")))
+               (add-after 'check 'leave-test-dir
+                 (lambda _
+                   (chdir "../../source"))))))
     (inputs (list openssl))
+    (native-inputs (list googletest `(,isc-bind "utils")))
     (home-page "https://github.com/pymumu/smartdns")
     (synopsis "Local DNS server")
     (description

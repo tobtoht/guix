@@ -116,7 +116,7 @@
                       ":" (or (getenv "CPATH") ""))))))))
     (inputs
      `(("gtk+" ,gtk+-2)
-       ("librsvg" ,librsvg)
+       ("librsvg" ,(librsvg-for-system))
        ("libxml2" ,libxml2)
        ("sdl-mixer" ,sdl-mixer)
        ("sqlite" ,sqlite)
@@ -737,6 +737,13 @@ stored and user can review his performance in any time.")
                            version "-source.tgz"))
        (sha256
         (base32 "1gfr51rnllkyzli73p4r51h5ypzfa3m7lic3m3rzpywmqwrxs07k"))
+       (modules '((guix build utils)))
+       ;; Fix preferences error: <https://issues.guix.gnu.org/65506>.
+       (snippet '(substitute* "aqt/preferences.py"
+                   (("qc\\['collapseTime']/60\\.0" x)
+                    (format #f "int(~a)" x))
+                   (("qc\\['timeLim']/60\\.0" x)
+                    (format #f "int(~a)" x))))
        (patches (search-patches "anki-mpv-args.patch"))))
     (build-system gnu-build-system)
     (arguments
@@ -876,7 +883,7 @@ endless.  For example:
     (inputs
      `(("font-andika" ,font-sil-andika)
        ("libpng" ,libpng)
-       ("librsvg" ,librsvg)
+       ("librsvg" ,(librsvg-for-system))
        ("libxml2" ,libxml2)
        ("sdl" ,(sdl-union (list sdl sdl-image sdl-mixer sdl-net sdl-pango)))))
     (home-page "https://github.com/tux4kids/t4kcommon")
@@ -932,7 +939,7 @@ TuxMath and TuxType.")
     (native-inputs
      (list pkg-config))
     (inputs
-     `(("librsvg" ,librsvg)
+     `(("librsvg" ,(librsvg-for-system))
        ("libxml2" ,libxml2)
        ("sdl" ,(sdl-union (list sdl sdl-image sdl-mixer sdl-net sdl-pango)))
        ("t4k-common" ,t4k-common)))

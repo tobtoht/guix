@@ -9,6 +9,7 @@
 ;;; Copyright © 2020, 2021, 2022 Marius Bakke <marius@gnu.org>
 ;;; Copyright © 2021 Petr Hodina <phodina@protonmail.com>
 ;;; Copyright © 2022, 2023 Maxim Cournoyer <maxim.cournoyer@gmail.com>
+;;; Copyright © 2023 Foundation Devices, Inc. <hello@foundationdevices.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -34,6 +35,8 @@
   #:use-module (guix git-download)
   #:use-module (guix build-system gnu)
   #:use-module (guix build-system meson)
+  #:use-module (guix build-system python)
+  #:use-module (guix build-system pyproject)
   #:use-module (guix build-system trivial)
   #:use-module (gnu packages)
   #:use-module (gnu packages admin)
@@ -68,6 +71,7 @@
   #:use-module (gnu packages polkit)
   #:use-module (gnu packages protobuf)
   #:use-module (gnu packages python)
+  #:use-module (gnu packages python-build)
   #:use-module (gnu packages python-xyz)
   #:use-module (gnu packages shells)
   #:use-module (gnu packages sqlite)
@@ -489,7 +493,7 @@ provide OpenFirmware functionality on top of an already running system.")
 (define* (make-opensbi-package platform name #:optional (arch "riscv64"))
   (package
     (name name)
-    (version "1.3")
+    (version "1.3.1")
     (source
      (origin
        (method git-fetch)
@@ -498,7 +502,7 @@ provide OpenFirmware functionality on top of an already running system.")
              (commit (string-append "v" version))))
        (file-name (git-file-name "opensbi" version))
        (sha256
-        (base32 "0shri9jlhi2g464l05vrkzr6v754m868rr4136kq2b86amypmg8f"))))
+        (base32 "01pr7fyg3gcb5pj6d48w2an3m4mfjs9b398x31drqxwqcaz0zn94"))))
     (build-system gnu-build-system)
     (native-inputs
      (append
@@ -518,11 +522,6 @@ provide OpenFirmware functionality on top of an already running system.")
                                 `("CC=gcc"))
                           "FW_PAYLOAD=n"
                           "V=1")
-       ;; Direct __asm__ is used with fence.i instructions, which are not
-       ;; available in the generic riscv ISA.  We need a micro-arch with
-       ;; support for it, and rv64g is the official ISA with support for
-       ;; fence.i.
-       #:configure-flags (list "-march=rv64g")
        #:phases
        (modify-phases %standard-phases
          (delete 'configure)
@@ -1025,7 +1024,7 @@ Virtual Machines.  OVMF contains a sample UEFI firmware for QEMU and KVM.")
                                        (gnu-triplet->nix-system triplet))))))
     (package
       (name (string-append "arm-trusted-firmware-" platform))
-      (version "2.8")
+      (version "2.9")
       (source
        (origin
          (method git-fetch)
@@ -1036,7 +1035,7 @@ Virtual Machines.  OVMF contains a sample UEFI firmware for QEMU and KVM.")
          (file-name (git-file-name "arm-trusted-firmware" version))
          (sha256
           (base32
-           "0grq3fgxi9xhcljnhwlxjvdghyz15gaq50raw41xy4lm8rkmnzp3"))
+           "16fjbn1zck0d8b554h8lk1svqqn0zlawvrlkjxry9l71s9h4vd0p"))
          (snippet
           #~(begin
               (use-modules (guix build utils))
@@ -1104,6 +1103,22 @@ such as:
   (let ((base (make-arm-trusted-firmware "imx8mq")))
     (package
       (inherit base)
+      ;; Newer versions do not build and are essentially not supported
+      ;; upstream.
+      ;; XXX: explore using NXP maintained branch
+      ;; https://github.com/nxp-imx/imx-atf
+      (version "2.8")
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               ;; There are only GitHub generated release snapshots.
+               (url "https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/")
+               (commit (string-append "v" version))))
+         (file-name (git-file-name "arm-trusted-firmware" version))
+         (sha256
+          (base32
+           "0grq3fgxi9xhcljnhwlxjvdghyz15gaq50raw41xy4lm8rkmnzp3"))))
       (arguments
        (substitute-keyword-arguments (package-arguments base)
          ((#:make-flags flags ''())
@@ -1199,3 +1214,24 @@ AR100.")
 
 (define-public crust-pine64-plus
   (make-crust-package "pine64_plus"))
+
+(define-public qmk
+  (package
+    (name "qmk")
+    (version "1.1.2")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "qmk" version))
+              (sha256
+               (base32
+                "1619q9v90740dbg8xpzqlhwcasz42xj737803aiip8qc3a7zhwgq"))))
+    (build-system pyproject-build-system)
+    (arguments (list #:tests? #f)) ;; No tests.
+    (propagated-inputs (list python-dotty-dict python-hid python-hjson
+                             python-jsonschema python-milc python-pillow
+                             python-pygments python-pyserial python-pyusb))
+    (home-page "https://qmk.fm")
+    (synopsis "Command line utility to manage QMK keyboard firmwares")
+    (description "This package provides a program to help users work with
+@acronym{QMK, Quantum Mechanical Keyboard} firmwares.")
+    (license license:expat)))

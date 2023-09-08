@@ -91,24 +91,20 @@
 (define-public mig
   (package
     (name "mig")
-    (version "1.8+git20220827")
+    (version "1.8+git20230520")
     (source (origin
-              (method url-fetch)
-              ;; XXX: Version 2.35 of glibc can only be built with an
-              ;; unreleased version of MiG:
-              ;; <https://lists.gnu.org/archive/html/bug-hurd/2023-03/msg00025.html>.
-              ;; It cannot be fetched from Git though, as the extra dependency
-              ;; on Autoconf/Automake would complicate bootstrapping.
-              (uri (string-append "mirror://gnu/guix/mirror/mig-"
-                                  version ".tar.gz"))
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://git.savannah.gnu.org/git/hurd/mig.git")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
               (sha256
                (base32
-                "163d37s9lscd6zxyfng421m9nl857464mgjj90xsrcl5ykbng5p2"))
-              (patches (search-patches "mig-cpu.h-generation.patch"))))
+                "10r0fdjqjzqsy6ajb21rifvhw0wpjvrw6a1zdyliqlzqny5k0qlz"))))
     (build-system gnu-build-system)
     ;; Flex is needed both at build and run time.
     (inputs (list gnumach-headers flex))
-    (native-inputs (list flex bison))
+    (native-inputs (list autoconf automake flex bison))
     (arguments
      (list #:tests? #f
            #:phases
@@ -333,14 +329,14 @@ Hurd-minimal package which are needed for both glibc and GCC.")
                                        "hurd-rumpdisk-no-hd.patch"))))
     (version (package-version hurd-headers))
     (arguments
-     `(#:phases
+     `(#:tests? #f                      ;no "check" target
+       #:phases
        (modify-phases %standard-phases
          (add-after 'unpack 'prepare-addons
            (lambda* (#:key native-inputs inputs #:allow-other-keys)
              ;; First we import the things we want from dde.
              (for-each make-file-writable (find-files "."))
-             (let ((dde (or (assoc-ref inputs "dde-sources")
-                            (assoc-ref native-inputs "dde-sources"))))
+             (let ((dde (assoc-ref (or native-inputs inputs) "dde-sources")))
                (for-each (lambda (dir)
                            (copy-recursively
                             (string-append dde "/" dir ) dir))
@@ -470,13 +466,13 @@ exec ${system}/rc \"$@\"
                #t)))
          (add-after 'build 'build-libdde-linux
            (lambda* (#:key inputs native-inputs #:allow-other-keys)
-             (invoke (string-append (assoc-ref native-inputs "make")
+             (invoke (string-append (assoc-ref (or native-inputs inputs) "make")
                                     "/bin/make")
                      ;; XXX There can be a race condition because subdirs
                      ;; aren't interdependent targets in the Makefile.
                      "-j1" "-C" "libdde_linux26"
                      (string-append "SHELL="
-                                    (assoc-ref native-inputs "bash")
+                                    (assoc-ref (or native-inputs inputs) "bash")
                                     "/bin/bash")
                      (string-append "CC="
                                     ,(cc-for-target)))))
@@ -487,12 +483,12 @@ exec ${system}/rc \"$@\"
              (let* ((out (assoc-ref outputs "out"))
                     (datadir (string-append out "/share/hurd")))
                ;; Install libdde_linux26.
-               (invoke (string-append (assoc-ref native-inputs "make")
+               (invoke (string-append (assoc-ref (or native-inputs inputs) "make")
                                       "/bin/make")
                        "-C" "libdde_linux26" "install"
                        (string-append "SHELL="
-                                    (assoc-ref native-inputs "bash")
-                                    "/bin/bash")
+                                      (assoc-ref (or native-inputs inputs) "bash")
+                                      "/bin/bash")
                        (string-append "INSTALLDIR="
                                       out
                                       "/share/libdde_linux26/build/include"))
@@ -594,8 +590,7 @@ implementing them.")
            (add-after 'unpack 'prepare-dde
              (lambda* (#:key native-inputs inputs #:allow-other-keys)
                (for-each make-file-writable (find-files "."))
-               (let ((dde (or (assoc-ref inputs "dde-sources")
-                              (assoc-ref native-inputs "dde-sources"))))
+               (let ((dde (assoc-ref (or native-inputs inputs) "dde-sources")))
                  (for-each (lambda (dir)
                              (copy-recursively
                               (string-append dde "/" dir ) dir))

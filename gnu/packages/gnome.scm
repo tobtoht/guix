@@ -384,7 +384,6 @@ services.")
 (define-public libcloudproviders
   (package/inherit libcloudproviders-minimal
     (name "libcloudproviders")
-    (version "0.3.1")
     (outputs (cons "doc" (package-outputs libcloudproviders-minimal)))
     (arguments
      (substitute-keyword-arguments (package-arguments libcloudproviders-minimal)
@@ -567,7 +566,7 @@ in JavaScript.")
            vala))
     (inputs
      (list avahi
-           librsvg
+           (librsvg-for-system)
            libgee
            gst-plugins-base
            gtk+))
@@ -871,7 +870,7 @@ tomorrow, the rest of the week and for special occasions.")
            libjpeg-turbo
            libportal
            libpng
-           librsvg
+           (librsvg-for-system)
            python-pygobject
            rest
            tracker
@@ -2610,13 +2609,15 @@ forgotten when the session ends.")
 (define-public evince
   (package
     (name "evince")
-    (version "44.1")
-    (source (origin
-              (method url-fetch)
-              (uri "mirror://gnome/sources/evince/44/evince-44.1.tar.xz")
-              (sha256
-               (base32
-                "0523lzk7xpfr6gir8nx80fmp1lhajm837hilmgn8zczz2nxx7bqm"))))
+    (version "44.3")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append "mirror://gnome/sources/evince/"
+                           (version-major version) "/"
+                           "evince-" version ".tar.xz"))
+       (sha256
+        (base32 "08inp13kksa027ij9ai10734jxdn1y7s0skbgzsyk9j739ca32rv"))))
     (build-system meson-build-system)
     (arguments
      `(#:glib-or-gtk? #t
@@ -2800,11 +2801,12 @@ and how they are displayed (View).")
            gettext-minimal
            `(,glib "bin")
            gobject-introspection
+           itstool
            pkg-config
            python))
     (inputs
      (list bash-minimal
-           librsvg
+           (librsvg-for-system)
            gsettings-desktop-schemas
            gtk+
            pango
@@ -4379,7 +4381,7 @@ engineering.")
            python))
     (inputs
      (list bash-minimal
-           librsvg
+           (librsvg-for-system)
            gsettings-desktop-schemas
            gtk+
            pango
@@ -4560,28 +4562,6 @@ editors, IDEs, etc.")
     (propagated-inputs (modify-inputs (package-propagated-inputs vte)
                          (replace "gtk+" gtk)))))
 
-(define-public vte-ng
-  (package
-    (inherit vte)
-    (name "vte-ng")
-    (version "0.59.0")
-    (home-page "https://github.com/thestinger/vte-ng")
-    (source (origin
-              (method git-fetch)
-              (uri (git-reference (url home-page) (commit version)))
-              (file-name (git-file-name name version))
-              (sha256
-               (base32
-                "03ffhjc0fq9p25y1b2c0a51jn7y2bc0acxsgymhcb3pyijc8ykjm"))))
-    (build-system meson-build-system)
-    (arguments
-     (list #:configure-flags #~(list "-Ddocs=false")))
-  (synopsis "Enhanced VTE terminal widget")
-  (description
-   "VTE is a library (libvte) implementing a terminal emulator widget for
-GTK+, this fork provides additional functions exposed for keyboard text
-selection and URL hints.")))
-
 ;; Stable version for gtk2, required by gnurobots and lxterminal as of 2020-07.
 (define-public vte/gtk+-2
   (package (inherit vte)
@@ -4709,7 +4689,7 @@ and RDP protocols.")
     (propagated-inputs
      ;; In Requires of dconf.pc.
      (list glib))
-    (home-page "https://developer.gnome.org/dconf/")
+    (home-page "https://wiki.gnome.org/action/show/Projects/dconf")
     (synopsis "Low-level GNOME configuration system")
     (description "Dconf is a low-level configuration system.  Its main purpose
 is to provide a backend to GSettings on platforms that don't already have
@@ -5354,8 +5334,9 @@ floating in an ocean using only your brain and a little bit of luck.")
                (("meson.add_install_script" &) (string-append "# " &)))
              #t)))))
     (native-inputs
-     `(("glib:bin" ,glib "bin")
-       ("pkg-config" ,pkg-config)))
+     (list gettext-minimal
+           `(,glib "bin")
+           pkg-config))
     (inputs
      (list gtk+
            glib ; for gio
@@ -5406,7 +5387,7 @@ once.")
      (list gtk+
            json-glib
            libgee
-           librsvg
+           (librsvg-for-system)
            qqwing))
     (home-page "https://wiki.gnome.org/Apps/Sudoku")
     (synopsis "Japanese logic game")
@@ -6104,7 +6085,7 @@ playlists in a variety of formats.")
        ("pkg-config" ,pkg-config)
        ("xmllint" ,libxml2)))
     (inputs
-     (list gtk+ guile-2.2 libcanberra librsvg))
+     (list gtk+ guile-2.2 libcanberra (librsvg-for-system)))
     (home-page "https://wiki.gnome.org/Apps/Aisleriot")
     (synopsis "Solitaire card games")
     (description
@@ -6691,7 +6672,7 @@ discovery protocols.")
            libxml2
            libsoup
            libpeas
-           librsvg
+           (librsvg-for-system)
            libhandy
            gnome-desktop
            gstreamer
@@ -6753,7 +6734,7 @@ which can read a large number of file formats.")
 (define-public rhythmbox
   (package
     (name "rhythmbox")
-    (version "3.4.6")
+    (version "3.4.7")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://gnome/sources/rhythmbox/"
@@ -6761,7 +6742,7 @@ which can read a large number of file formats.")
                                   "rhythmbox-" version ".tar.xz"))
               (sha256
                (base32
-                "0d5hbsdk2p8w567mfzy4kk8xn4d227hrbyy857li3r2mrq884mpr"))))
+                "0zps1k72n7yycw6djgilgdacwdi993xqh1sh9x9lr9n17z0mcv9g"))))
     (build-system meson-build-system)
     (arguments
      (list
@@ -6821,7 +6802,7 @@ which can read a large number of file formats.")
            libpeas
            libsecret
            libmtp
-           libsoup-minimal-2
+           libsoup-minimal
            libxml2
            lirc
            pango
@@ -7005,7 +6986,7 @@ part of udev-extras, then udev, then systemd.  It's now a project on its own.")
            docbook-xsl
            dbus
            elogind
-           fuse-3
+           fuse
            gcr
            glib
            gnome-online-accounts
@@ -7814,7 +7795,10 @@ to display dialog boxes from the commandline and shell scripts.")
                                   name "-" version ".tar.xz"))
               (sha256
                (base32
-                "0h1ak3201mdc2qbf67fhcn801ddp33hm0f0c52zis1l7s6ipyb62"))))
+                "0h1ak3201mdc2qbf67fhcn801ddp33hm0f0c52zis1l7s6ipyb62"))
+              ;; TODO: Remove on update as this was merged upstream.  See
+              ;; <https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/3047>.
+              (patches (search-patches "mutter-fix-inverted-test.patch"))))
     ;; NOTE: Since version 3.21.x, mutter now bundles and exports forked
     ;; versions of cogl and clutter.  As a result, many of the inputs,
     ;; propagated-inputs, and configure flags used in cogl and clutter are
@@ -8713,7 +8697,7 @@ the available networks and allows users to easily switch between them.")
 (define-public libxml++
   (package
     (name "libxml++")
-    (version "5.0.2")
+    (version "5.0.3")
     (source
      (origin
        (method git-fetch)
@@ -8722,7 +8706,7 @@ the available networks and allows users to easily switch between them.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "13jlhz57yjxapplflm8aarczxv6ll3d336y1446mr5n4ylkcc1xz"))))
+        (base32 "07h11vl0rv8b0w31as5xiirpx17lprkx7fimphy3f5mkwhz8njba"))))
     (build-system gnu-build-system)
     (propagated-inputs
      (list libxml2))                    ;required by .pc file
@@ -9125,7 +9109,7 @@ devices using the GNOME desktop.")
            libgtop
            libnma
            libpwquality
-           librsvg                      ;for loading SVG files
+           (librsvg-for-system)             ;for loading SVG files
            libsecret
            libxml2
            libwacom
@@ -11003,7 +10987,7 @@ Bluefish supports many programming and markup languages.")
            gtk+
            gtkmm-3
            libhandy
-           librsvg
+           (librsvg-for-system)
            libxml2
            libwnck))
     (home-page "https://wiki.gnome.org/Apps/SystemMonitor")
@@ -11446,7 +11430,7 @@ and uncluttered interface for the management of password databases.")
 (define-public sound-juicer
   (package
     (name "sound-juicer")
-    (version "3.38.0")
+    (version "3.40.0")
     (source
      (origin
        (method url-fetch)
@@ -11455,15 +11439,25 @@ and uncluttered interface for the management of password databases.")
                            name "-" version ".tar.xz"))
        (sha256
         (base32
-         "08d5d81rz9sj3m5paw8fwbgxmhlbr7bcjdzpmzj832qvg8smydxf"))))
+         "1rhxmvx2mr22zd5p0azc0svi0mbnzcjnh3sasv3b9gli8ds85s1f"))))
     (build-system meson-build-system)
     (arguments
      (list
       #:glib-or-gtk? #t
-      #:phases #~(modify-phases %standard-phases
-                   (add-after 'unpack 'disable-gtk-update-icon-cache
-                     (lambda _
-                       (setenv "DESTDIR" "/"))))))
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'disable-gtk-update-icon-cache
+            (lambda _
+              (substitute* "meson.build"
+                (("gtk_update_icon_cache: true")
+                 "gtk_update_icon_cache: false"))))
+          (add-after 'install 'wrap-program
+            (lambda _
+              (let ((prog (string-append #$output "/bin/sound-juicer"))
+                    (gst-plugin-path (getenv "GST_PLUGIN_SYSTEM_PATH")))
+                (wrap-program prog
+                  `("GST_PLUGIN_SYSTEM_PATH"
+                    ":" prefix (,gst-plugin-path)))))))))
     (native-inputs
      (list desktop-file-utils
            gettext-minimal
@@ -11473,7 +11467,8 @@ and uncluttered interface for the management of password databases.")
            pkg-config
            python))
     (inputs
-     (list brasero
+     (list bash-minimal
+           brasero
            gsettings-desktop-schemas
            gst-plugins-base
            gst-plugins-good
@@ -11788,7 +11783,7 @@ functionality.")
        ("libheif" ,libheif)
        ("libjpeg" ,libjpeg-turbo)
        ("libraw" ,libraw)
-       ("librsvg" ,librsvg)
+       ("librsvg" ,(librsvg-for-system))
        ("libtiff" ,libtiff)
        ("libwebp" ,libwebp)))
     (home-page "https://wiki.gnome.org/Apps/Gthumb")
@@ -12173,7 +12168,7 @@ and a high score table.")
      `(("glib" ,glib)
        ("gtk+" ,gtk+)
        ("gtk+-2" ,gtk+-2)
-       ("librsvg" ,librsvg)
+       ("librsvg" ,(librsvg-for-system))
        ("libxml2" ,libxml2)))
     (home-page "https://gitlab.gnome.org/GNOME/gnome-themes-extra")
     (synopsis "GNOME Extra Themes")
@@ -12484,7 +12479,7 @@ to.")
        ("itstool" ,itstool)
        ("pkg-config" ,pkg-config)))
     (inputs
-     (list gtk+ librsvg libxml2))
+     (list gtk+ (librsvg-for-system) libxml2))
     (arguments
      `(#:configure-flags '("CFLAGS=-fcommon")))
     (home-page "https://glabels.org/")

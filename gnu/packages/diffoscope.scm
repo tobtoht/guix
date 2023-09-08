@@ -74,7 +74,7 @@
 (define-public diffoscope
   (package
     (name "diffoscope")
-    (version "244")
+    (version "247")
     (source
      (origin
        (method git-fetch)
@@ -83,7 +83,7 @@
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "16v6p970kckyv5pa93sj7r5k4b0hgbyralvzddbj73g7srysa02v"))))
+        (base32 "0c81pvdq0bz47sk3gcgpm2l3g5hxdi2s1jz05krv1cr2bd0sfq4j"))))
     (build-system python-build-system)
     (arguments
      (list
@@ -243,7 +243,7 @@ install.")
 (define-public reprotest
   (package
     (name "reprotest")
-    (version "0.7.23")
+    (version "0.7.26")
     (source
      (origin
        (method git-fetch)
@@ -252,7 +252,7 @@ install.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0hkzh4i3c5hrbvdkhbmwm5vmb4msnlm5rvhjin6h2ni40kix69g0"))))
+        (base32 "1992wlkil07fmj64lw3i7l16dgkkzphz0f932hbkkj9rlcamdwxd"))))
     (inputs
      (list python-debian python-distro python-libarchive-c python-rstr))
     (native-inputs

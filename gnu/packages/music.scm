@@ -3,7 +3,7 @@
 ;;; Copyright © 2015-2023 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2015 Paul van der Walt <paul@denknerd.org>
 ;;; Copyright © 2016 Al McElrath <hello@yrns.org>
-;;; Copyright © 2016, 2017, 2019, 2021, 2022 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2016, 2017, 2019, 2021-2023 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016, 2018, 2021 Leo Famulari <leo@famulari.name>
 ;;; Copyright © 2016, 2017, 2019 Kei Kebreau <kkebreau@posteo.net>
 ;;; Copyright © 2016 John J. Foerch <jjfoerch@earthlink.net>
@@ -553,7 +553,7 @@ you create custom user interfaces for your MIDI hardware.")
 (define-public strawberry
   (package
     (name "strawberry")
-    (version "1.0.17")
+    (version "1.0.18")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -562,7 +562,7 @@ you create custom user interfaces for your MIDI hardware.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1xcf9jighb759kdh4p32wib2pipgcx3qdf5x7da6cjhxjbzgfrk7"))
+                "1knijckphq2jxrz8nmv4cb64zl1rz3bjyq5ipac09hnj2gvv5rmw"))
               (modules '((guix build utils)
                          (ice-9 regex)))
               (snippet
@@ -752,7 +752,7 @@ many input formats and provides a customisable Vi-style user interface.")
            gtk+
            gtksourceview-3
            guile-2.0
-           librsvg
+           (librsvg-for-system)
            libsndfile
            libxml2
            lilypond
@@ -1508,9 +1508,9 @@ and auto-mapping slices to MIDI note numbers.")
            texinfo
            texi2html-1.82
            (texlive-updmap.cfg
-            (list texlive-epsf
+            (list texlive-cyrillic
+                  texlive-epsf
                   texlive-fontinst
-                  texlive-latex-cyrillic
                   texlive-lh
                   texlive-lm
                   texlive-metapost))
@@ -2270,7 +2270,7 @@ a JACK session.")
 (define-public mixxx
   (package
     (name "mixxx")
-    (version "2.3.5")
+    (version "2.3.6")
     (source
      (origin
        (method git-fetch)
@@ -2282,7 +2282,7 @@ a JACK session.")
         (search-patches "mixxx-link-qtscriptbytearray-qtscript.patch"
                         "mixxx-system-googletest-benchmark.patch"))
        (sha256
-        (base32 "0142xcq5ahk50kzc06s13xilj8m4p0spmd5hqd8s08qjhr37n2il"))
+        (base32 "1v1sza75rf2q1m0bdc0j2k53qd34m12d1573jmac3g7vvyqh5n2m"))
        (modules '((guix build utils)))
        (snippet
         ;; Delete libraries that we already have or don't need.
@@ -2371,7 +2371,7 @@ perform creative live mixes with digital music files.")
 (define-public synthv1
   (package
     (name "synthv1")
-    (version "0.9.27")
+    (version "0.9.31")
     (source (origin
               (method url-fetch)
               (uri
@@ -2379,7 +2379,7 @@ perform creative live mixes with digital music files.")
                               "/synthv1-" version ".tar.gz"))
               (sha256
                (base32
-                "13qcig5j69qzcxqs9w5x9shrbb6vyj00g2fz1jw1kxramppyvcvg"))))
+                "06yfiwnxdawyby63zqm1jv4ihi4fxzabpkba7v4d8lgwvhxa014k"))))
     (build-system cmake-build-system)
     (arguments
      `(#:tests? #f))                    ; there are no tests
@@ -2403,7 +2403,7 @@ oscillators and stereo effects.")
 (define-public drumkv1
   (package
     (name "drumkv1")
-    (version "0.9.27")
+    (version "0.9.31")
     (source (origin
               (method url-fetch)
               (uri
@@ -2411,7 +2411,7 @@ oscillators and stereo effects.")
                               "/drumkv1-" version ".tar.gz"))
               (sha256
                (base32
-                "0j96z5bqh1mnldsda6dyp0jqp01mf7p55yr956rzkzg6jivj8fs3"))))
+                "0cw0lqxd4igkb25vlivbi0hamn33d26nl96mzm59cda158r0jayl"))))
     (build-system cmake-build-system)
     (arguments
      `(#:tests? #f))                    ; there are no tests
@@ -2436,7 +2436,7 @@ effects.")
 (define-public samplv1
   (package
     (name "samplv1")
-    (version "0.9.27")
+    (version "0.9.31")
     (source (origin
               (method url-fetch)
               (uri
@@ -2444,7 +2444,7 @@ effects.")
                               "/samplv1-" version ".tar.gz"))
               (sha256
                (base32
-                "0wxdcw5qs58kjfnnl4lnmafj8qim8qmdfdzrgnxggyhjg5mrpyby"))))
+                "1jqblmb24vbnpm4a4wlvasz45h3zy00rrpf850yxaplyf0qb8klx"))))
     (build-system cmake-build-system)
     (arguments
      `(#:tests? #f))                    ; there are no tests
@@ -2469,7 +2469,7 @@ effects.")
 (define-public padthv1
   (package
     (name "padthv1")
-    (version "0.9.27")
+    (version "0.9.31")
     (source (origin
               (method url-fetch)
               (uri
@@ -2477,7 +2477,7 @@ effects.")
                               "/padthv1-" version ".tar.gz"))
               (sha256
                (base32
-                "0ydm09g0ibvp1nf4fzzj6bkwlxx46pjxqgg8h76hwi6l8k0rz5m4"))))
+                "1iqmjdxihil039c8g9kywd5dx3rd47ph2fs6f6kcyfwj9jz4aprh"))))
     (build-system cmake-build-system)
     (arguments
      `(#:tests? #f))                    ; there are no tests
@@ -2635,7 +2635,7 @@ Paul), and specifically the PaulXStretch version from Xenakios.")
 (define-public setbfree
   (package
     (name "setbfree")
-    (version "0.8.11")
+    (version "0.8.12")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -2644,27 +2644,28 @@ Paul), and specifically the PaulXStretch version from Xenakios.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1s3ps3cjwlm63ml4izb7mizy8ci5pl9a19lvz62xf0br089h3afc"))))
+                "1lzrrpm57pilvwxpr1qhnx6273md2k96ygxjlhi5gqjdl0nl3z95"))))
     (build-system gnu-build-system)
     (arguments
-     `(#:tests? #f                      ; no "check" target
-       #:make-flags
-       (list (string-append "PREFIX=" (assoc-ref %outputs "out"))
-             (string-append "FONTFILE="
-                            (assoc-ref %build-inputs "font-bitstream-vera")
-                            "/share/fonts/truetype/VeraBd.ttf")
-             ;; Disable unsupported optimization flags on non-x86
-             ,@(let ((system (or (%current-target-system)
-                                 (%current-system))))
-                 (if (or (string-prefix? "x86_64" system)
-                         (string-prefix? "i686" system))
-                     '()
-                     '("OPTIMIZATIONS=-ffast-math -fomit-frame-pointer -O3"))))
-       #:phases
-       (modify-phases %standard-phases
-         (add-before 'build 'set-CC-variable
-           (lambda _ (setenv "CC" "gcc") #t))
-         (delete 'configure))))
+     (list
+      #:tests? #f                       ; no "check" target
+      #:make-flags
+      #~(cons* (string-append "PREFIX=" #$output)
+               (string-append "FONTFILE="
+                              #$(this-package-input "font-bitstream-vera")
+                              "/share/fonts/truetype/VeraBd.ttf")
+               ;; Disable unsupported optimization flags on non-x86
+               (let ((system #$(or (%current-target-system)
+                                   (%current-system))))
+                   (if (or (string-prefix? "x86_64" system)
+                           (string-prefix? "i686" system))
+                       '()
+                       '("OPTIMIZATIONS=-ffast-math -fomit-frame-pointer -O3"))))
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-before 'build 'set-CC-variable
+            (lambda _ (setenv "CC" #$(cc-for-target))))
+          (delete 'configure))))
     (inputs
      (list jack-1
            lv2
@@ -3216,7 +3217,7 @@ capabilities, custom envelopes, effects, etc.")
 (define-public yoshimi
   (package
     (name "yoshimi")
-    (version "2.3.0")
+    (version "2.3.0.2")
     (source
      (origin
        (method url-fetch)
@@ -3224,7 +3225,7 @@ capabilities, custom envelopes, effects, etc.")
                            (version-major+minor version)
                            "/yoshimi-" version ".tar.bz2"))
        (sha256
-        (base32 "0rkwz545bipanyl8kcp6rgdqppiad7s0j409a4n8dd97maislsa0"))))
+        (base32 "1024ykyaq0s6zzyksrmgdz8ix0a4yranlsv5rbq72dbrkh3h8wqm"))))
     (build-system cmake-build-system)
     (arguments
      (list
@@ -3481,14 +3482,14 @@ from the command line.")
 (define-public qtractor
   (package
     (name "qtractor")
-    (version "0.9.29")
+    (version "0.9.34")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://downloads.sourceforge.net/qtractor/"
                                   "qtractor-" version ".tar.gz"))
               (sha256
                (base32
-                "05g0zj5iy8knqccwglgql1flabgvpy4yqms4z1zqrkl9ws9bwc1x"))))
+                "0w6g51jhj9c72j6qjjkjhiq0vwklb6q4cr3xgj4mzp0iw279hbjz"))))
     (build-system cmake-build-system)
     (arguments
      `(#:tests? #f))                    ; no "check" target
@@ -3779,15 +3780,15 @@ event-based scripts for scrobbling, notifications, etc.")
 (define-public picard
   (package
     (name "picard")
-    (version "2.8.5")
+    (version "2.9.1")
     (source (origin
               (method url-fetch)
               (uri (string-append
-                    "https://musicbrainz.osuosl.org/pub/musicbrainz/"
+                    "https://data.musicbrainz.org/pub/musicbrainz/"
                     "picard/picard-" version ".tar.gz"))
               (sha256
                (base32
-                "1kjl7iqgvvrv7mygsb7491cz872gm334489nyj0v8b79bxnzghdi"))))
+                "1f1nf53xm94jam8w86a8hx69ilzddjibf29c7f1i353fr6k6bqvs"))))
     (build-system python-build-system)
     (arguments
      (list
@@ -3804,7 +3805,11 @@ event-based scripts for scrobbling, notifications, etc.")
                 (("pyfpcalc")
                  (string-append
                   "pyfpcalc', '"
-                  (assoc-ref inputs "chromaprint") "/bin/fpcalc"))))))))
+                  (assoc-ref inputs "chromaprint") "/bin/fpcalc")))))
+          ;; pipe tests require writable $HOME.
+          (add-before 'check 'set-HOME
+            (lambda _
+              (setenv "HOME" "/tmp"))))))
     (native-inputs
      (list gettext-minimal python-dateutil))
     (inputs
@@ -5121,7 +5126,7 @@ studio.")
 (define-public gsequencer
   (package
     (name "gsequencer")
-    (version "4.5.0")
+    (version "5.5.0")
     (source
      (origin
        (method git-fetch)
@@ -5130,7 +5135,7 @@ studio.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0j66b8y1pyka2im5hbwz6yh3hip0wsw7fa3kwl2212wq1y2a4ys1"))))
+        (base32 "0dl3gsmpc7b4hi97qri5d5rc3ikx639r3l1dy204p6dx8pwpv2ry"))))
     (build-system glib-or-gtk-build-system)
     (arguments
      `(#:phases
@@ -5158,6 +5163,7 @@ studio.")
            gstreamer
            gtk
            jack-1
+           json-glib
            ladspa
            libinstpatch
            libsamplerate
@@ -6344,6 +6350,170 @@ keymaps for QWERTZ, QWERTY and AZERTY keyboards and also allows custom
 ones.")
    (license license:bsd-0)))
 
+(define-public distrho-ports
+  ;; From 2021-03-15 to this commit various important changes are made
+  ;; including improved directory structure and updated JUCE versions.
+  (let ((commit "f2dbaded0a05732e3499fa374a586e5b32370da5")
+        (revision "0"))
+    (package
+      (name "distrho-ports")
+      (version (git-version "2021-03-15" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/DISTRHO/DISTRHO-Ports")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "1rrnqwask2qg05ynisk6bpj118cl7c3w53rqrfg5x3sx847rjjgc"))
+                (modules '((guix build utils)))
+                (snippet
+                 '(begin
+                    ;; Delete third party libraries, libraries without
+                    ;; licenses, and unneeded libraries.
+                    (for-each
+                     delete-file-recursively
+                     (list "ports-juce5/arctican-function"         ;no license
+                           "ports-juce5/arctican-pilgrim"          ;no license
+                           "ports-juce5/drowaudio-tremolo"         ;no license
+                           "ports-juce5/juce-demo-host"            ;not used
+                           "ports-juce5/juce-demo-plugin"          ;not used
+                           "ports-juce5/temper/source/faust"       ;bundled
+                           "ports-juce6/chow"                      ;not used
+                           "ports-juce6/swankyamp/thirdparty"      ;bundled
+                           "ports-juce6/vitalium/third_party"))    ;bundled
+                    ;; Exclude them from building.
+                    (substitute* (find-files "." "meson.build$")
+                      (("'arctican") "#'arctican")
+                      (("'drowaudio-tremolo") "#'drowaudio-tremolo")
+                      (("'third") "#'third"))
+                    ;; Use system provided "nlohmann/json.hpp".
+                    (with-directory-excursion "ports-juce6/vitalium/source"
+                      (substitute*
+                          (list "common/line_generator.h"
+                                "common/load_save.h"
+                                "common/tuning.h"
+                                "common/wavetable/wavetable_component.h"
+                                "common/wavetable/wavetable_creator.h"
+                                "common/wavetable/wavetable_keyframe.h"
+                                "interface/editor_sections/save_section.h"
+                                "interface/look_and_feel/skin.h"
+                                "synthesis/producers/sample_source.h")
+                        (("json/json\\.h") "nlohmann/json.hpp")))))))
+      (build-system meson-build-system)
+      (arguments
+       (list
+        #:tests? #f                     ;no test target
+        #:phases
+        #~(modify-phases %standard-phases
+            (add-after 'unpack 'patch-juce-fonts
+              (lambda* (#:key inputs #:allow-other-keys)
+                (let ((fonts (search-input-directory inputs "/etc/fonts")))
+                  (with-directory-excursion "libs"
+                    (substitute* (find-files "." "juce_linux_Fonts.cpp$")
+                      (("/usr/share/fonts") fonts)))))))))
+      (native-inputs
+       (list cmake-minimal
+             concurrentqueue
+             faust
+             nlohmann-json
+             optional-lite
+             pkg-config))
+      (inputs
+       (list alsa-lib
+             fontconfig
+             freetype
+             fftwf
+             libx11
+             libxcursor
+             libxext
+             libxrender
+             mesa))
+      (native-search-paths
+       (list (search-path-specification
+              (variable "LV2_PATH")
+              (files '("lib/lv2")))
+             (search-path-specification
+              (variable "VST2_PATH")
+              (files '("lib/vst")))
+             (search-path-specification
+              (variable "VST3_PATH")
+              (files '("lib/vst3")))))
+      (home-page "https://github.com/DISTRHO/DISTRHO-Ports")
+      (synopsis "Audio plugins and LV2 ports")
+      (description
+       "This package contains LV2 ports of the following audio plugins:
+@itemize
+@item Dexed,
+@item dRowAudio plugins (Distortion, Distortion Shaper, Flanger, Reverb,
+  Tremolo),
+@item DrumSynth,
+@item EasySSP,
+@item EQinox,
+@item HiReSam,
+@item JuceOPL,
+@item KlangFalter,
+@item LUFS Meter,
+@item Luftikus,
+@item Obxd,
+@item PitchedDelay,
+@item ReFine,
+@item StereoSourceSeperation,
+@item Swanky Amp,
+@item TAL plugins (Dub-3, Filter, Filter-2, Noize Mak3r, Reverb, Reverb-II,
+  Reverb-III, Vocoder-II),
+@item Temper,
+@item Vex,
+@item Vitalium, and
+@item Wolpertinger.
+@end itemize")
+      (license
+       (list license:asl2.0             ;used by Dexed
+             ;; mingw-std-threads and EasySSP (for dsp-utility) use FreeBSD.
+             license:bsd-2
+             ;; Licenses for dRowAudio is not found in this repository, but
+             ;; the upstream project is licensed under MIT:
+             ;; https://github.com/drowaudio/drowaudio.
+             ;; Luftikus, PitchedDelay and ReFine are ported from lkjb plugins
+             ;; which is licensed under MIT:
+             ;; https://github.com/lkjbdsp/lkjb-plugins.
+             license:expat
+             (license:fsf-free          ;used by Temper
+              "file:///ports-juce5/temper/source/TemperDsp.hpp")
+             ;; juce-plugin, LUFS Meter, Obxd and TAL plugins use GPLv2.
+             license:gpl2
+             ;; License for Wolpertinger is not found in this repository, but
+             ;; the upstream project is licensed under GPLv2+:
+             ;; https://github.com/jkroll20/wolpertinger.
+             ;; dRowAudio plugins, juced, HiReSam and Vex use this license.
+             ;; Packages using files from JUCETICE project use this license.
+             license:gpl2+
+             ;; License for EasySSP is not found in this repository, but the
+             ;; upstream project is licensed under GPLv3:
+             ;; https://github.com/automatl/audio-dsp-multi-visualize.
+             license:gpl3               ;used by JUCE
+             ;; Dexed, Swanky Amp, Vitalium and KlangFalter use GPLv3+.
+             license:gpl3+
+             ;; License for lv2-ttl-generator is not found in this repository,
+             ;; but is a part of DPF-Plugins and is licensed under ISC:
+             ;; https://github.com/DISTRHO/DPF.
+             ;; JUCE uses this license for juce_audio_basics,
+             ;; juce_audio_devices, juce_blocks_basics, juce_core and
+             ;; juce_events.
+             license:isc
+             license:lgpl2.0+           ;used by DrumSynth and EQinox
+             license:lgpl2.1+           ;used by SoundTouch and juce-opl
+             ;; StereoSourceSeperation uses a non-copyleft license.
+             (license:non-copyleft
+              "file:///ports-juce5/stereosourceseparation/\
+source/kiss_fft/kiss_fft.c")
+             ;; dRowAudio uses a non-copyleft license for curl.
+             (license:non-copyleft
+              "file:///libs/drowaudio/source/dRowAudio/network/\
+curl/include/curl/curl.h")
+             license:wtfpl2))))) ;used by dRowAudio for FFTReal
+
 (define-public dpf-plugins
   (package
     (name "dpf-plugins")
@@ -6509,6 +6679,7 @@ and as an LV2 plugin.")
                    "-Dgraphviz=enabled" ;for exporting routing graphs
                    "-Dguile=enabled"    ;for Guile scripting
                    "-Djack=enabled"     ;for JACK audio/MIDI backend
+                   "-Drtaudio=enabled"  ;for RtAudio backend (ALSA)
                    "-Drtmidi=enabled"   ;for RtMidi backend (ALSA sequencer)
                    "-Dsdl=enabled")     ;for SDL audio backend (which uses ALSA)
            #:phases
@@ -6590,6 +6761,7 @@ success = io_mkdir (tmp_log_dir, &err);")))
            pipewire
            pulseaudio
            reproc
+           rtaudio
            rtmidi
            rubberband
            sdl2
@@ -7215,7 +7387,7 @@ streaming audio server.")
            gtksourceview-4 ; undo, redo, multiline text fields
            hicolor-icon-theme
            keybinder-3.0 ; keybindings outside of GNOME
-           librsvg
+           (librsvg-for-system)
            libsoup-minimal-2
            python
            python-cheetah

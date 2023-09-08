@@ -1,7 +1,9 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2021 Raghav Gururajan <rg@raghavgururajan.name>
-;;; Copyright © 2022 Hilton Chain <hako@ultrarare.space>
+;;; Copyright © 2022, 2023 Hilton Chain <hako@ultrarare.space>
 ;;; Copyright © 2023 Saku Laesvuori <saku@laesvuori.fi>
+;;; Copyright © 2023 Lu Hui <luhux76@gmail.com>
+;;; Copyright © 2023 Camilo Q.S. (Distopico) <distopico@riseup.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -82,8 +84,8 @@
 (define %telegram-version "4.8.1")
 
 (define libyuv-for-telegram-desktop
-  (let ((commit "00950840d1c9bcbb3eb6ebc5aac5793e71166c8b")
-        (revision "2212"))
+  (let ((commit "77c2121f7e6b8e694d6e908bbbe9be24214097da")
+        (revision "2439"))
     (origin
       (method git-fetch)
       (uri (git-reference
@@ -94,7 +96,7 @@
                   (git-version "0" revision commit)))
       (sha256
        (base32
-        "0mm56p8iapfild2xdw4w8zi35c3xm06fgagiali644gnxdmnym6c")))))
+        "1b4k8yskr9ffl5k8s9i0af1gn1pavsfixla26vh8bij69rdr7f9c")))))
 
 (define cmake-helpers-for-telegram-desktop
   (origin
@@ -265,8 +267,8 @@
       "193m2gkvipijqbfd6a8mhg9nd63wlnshzgspk3pip57vk21l709z"))))
 
 (define-public webrtc-for-telegram-desktop
-  (let ((commit "5098730b9eb6173f0b52068fe2555b7c1015123a")
-        (revision "328"))
+  (let ((commit "0532942ac6176a66ef184fb728a4cbb02958fc0b")
+        (revision "389"))
     (hidden-package
      (package
        (name "webrtc-for-telegram-desktop")
@@ -282,14 +284,18 @@
           (file-name
            (git-file-name name version))
           (sha256
-           (base32 "1lk54zlrff59rj5k9dylsgz4sdds4728psrk8m3v9qn5y8d6z8qy"))
+           (base32 "0fary99yl1ddk5zjpfy0pyb5brd268j41plcnvv9qjyf0wj9hf2k"))
+          (patches
+           (search-patches
+            ;; https://github.com/desktop-app/tg_owt/pull/123
+            "webrtc-for-telegram-desktop-unbundle-libsrtp.patch"))
           (modules '((guix build utils)
                      (ice-9 ftw)
                      (srfi srfi-1)))
           (snippet
            #~(begin
                (let ((keep
-                      '("libsrtp" "rnnoise"
+                      '("rnnoise"
                         ;; Not available in Guix.
                         "pffft")))
                  (with-directory-excursion "src/third_party"
@@ -324,6 +330,7 @@
               libdrm
               libglvnd
               libjpeg-turbo
+              libsrtp
               libvpx
               libxcomposite
               libxdamage
@@ -516,7 +523,7 @@ Telegram project, for its use in telegram desktop client.")
            qrcodegen-cpp
            qtbase-5
            qtdeclarative-5
-           qtimageformats
+           qtimageformats-5
            qtsvg-5
            qtwayland-5
            range-v3
@@ -792,3 +799,30 @@ formerly a part of telegram-cli, but now being maintained separately.")
     (synopsis "Telegram Terminal Application")
     (description "TgCli is a telegram client to automate repetitive tasks.")
     (license license:asl2.0)))
+
+(define-public tgs2png
+  (let ((commit "25c15b7c2ca3b1a580a383d9d3cb13bf8531d04a")
+        (revision "0"))
+    (package
+      (name "tgs2png")
+      (version (git-version "0" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/zevlg/tgs2png")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "0camvzapkfvr9v0nkk96n26rdmw0g8wbpv41i5l03j6bzdgm4myl"))))
+      (build-system cmake-build-system)
+      (native-inputs (list pkg-config))
+      (inputs (list libpng rlottie))
+      (arguments
+       `(#:tests? #f))                            ;no tests
+      (home-page "https://github.com/zevlg/tgs2png")
+      (synopsis "Convert Telegram's TGS format into PNG images")
+      (description
+       "This program converts Telegram's animated stickers in TGS format into
+a series of PNG images.")
+      (license license:gpl3+))))

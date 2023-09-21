@@ -902,6 +902,7 @@ dist_patch_DATA =						\
   %D%/packages/patches/akonadi-not-relocatable.patch		\
   %D%/packages/patches/akonadi-timestamps.patch		\
   %D%/packages/patches/allegro-mesa-18.2.5-and-later.patch	\
+  %D%/packages/patches/alure-dumb-2.patch			\
   %D%/packages/patches/ibus-anthy-fix-tests.patch		\
   %D%/packages/patches/ibus-table-paths.patch			\
   %D%/packages/patches/anki-mpv-args.patch			\
@@ -913,6 +914,7 @@ dist_patch_DATA =						\
   %D%/packages/patches/apr-skip-getservbyname-test.patch	\
   %D%/packages/patches/ark-skip-xar-test.patch			\
   %D%/packages/patches/arpack-ng-propagate-rng-state.patch	\
+  %D%/packages/patches/asli-use-system-libs.patch		\
   %D%/packages/patches/aspell-CVE-2019-25051.patch		\
   %D%/packages/patches/aspell-default-dict-dir.patch		\
   %D%/packages/patches/ath9k-htc-firmware-binutils.patch	\
@@ -1112,6 +1114,7 @@ dist_patch_DATA =						\
   %D%/packages/patches/emacs-kv-fix-tests.patch	\
   %D%/packages/patches/emacs-pgtk-super-key-fix.patch	\
   %D%/packages/patches/emacs-xelb-ignore-length-element.patch	\
+  %D%/packages/patches/enblend-enfuse-reproducible.patch	\
   %D%/packages/patches/enjarify-setup-py.patch			\
   %D%/packages/patches/enlightenment-fix-setuid-path.patch	\
   %D%/packages/patches/erlang-man-path.patch			\
@@ -1119,7 +1122,6 @@ dist_patch_DATA =						\
   %D%/packages/patches/esmini-use-pkgconfig.patch		\
   %D%/packages/patches/esmtp-add-lesmtp.patch		\
   %D%/packages/patches/eudev-rules-directory.patch		\
-  %D%/packages/patches/evdi-fix-build-with-linux-6.2.patch	\
   %D%/packages/patches/exercism-disable-self-update.patch	\
   %D%/packages/patches/extempore-unbundle-external-dependencies.patch	\
   %D%/packages/patches/extundelete-e2fsprogs-1.44.patch		\
@@ -1178,9 +1180,15 @@ dist_patch_DATA =						\
   %D%/packages/patches/gajim-honour-GAJIM_PLUGIN_PATH.patch	\
   %D%/packages/patches/ganeti-disable-version-symlinks.patch	\
   %D%/packages/patches/ganeti-haskell-pythondir.patch		\
+  %D%/packages/patches/ganeti-lens-compat.patch			\
   %D%/packages/patches/ganeti-pyyaml-compat.patch		\
+  %D%/packages/patches/ganeti-procps-compat.patch		\
+  %D%/packages/patches/ganeti-reorder-arbitrary-definitions.patch	\
+  %D%/packages/patches/ganeti-relax-dependencies.patch		\
   %D%/packages/patches/ganeti-shepherd-master-failover.patch	\
   %D%/packages/patches/ganeti-shepherd-support.patch		\
+  %D%/packages/patches/ganeti-template-haskell-2.17.patch	\
+  %D%/packages/patches/ganeti-template-haskell-2.18.patch	\
   %D%/packages/patches/gawk-shell.patch				\
   %D%/packages/patches/gcc-arm-bug-71399.patch			\
   %D%/packages/patches/gcc-arm-link-spec-fix.patch		\
@@ -1280,6 +1288,7 @@ dist_patch_DATA =						\
   %D%/packages/patches/glibc-2.37-hurd-local-clock_gettime_MONOTONIC.patch	\
   %D%/packages/patches/glibc-2.37-versioned-locpath.patch	\
   %D%/packages/patches/glibc-hurd-clock_t_centiseconds.patch	\
+  %D%/packages/patches/glibc-hurd-getauxval.patch		\
   %D%/packages/patches/glibc-hurd-gettyent.patch		\
   %D%/packages/patches/glibc-hurd-mach-print.patch		\
   %D%/packages/patches/glibc-hurd-signal-sa-siginfo.patch	\
@@ -1299,6 +1308,7 @@ dist_patch_DATA =						\
   %D%/packages/patches/gnash-fix-giflib-version.patch	        \
   %D%/packages/patches/gnome-2048-fix-positional-argument.patch	\
   %D%/packages/patches/gnome-control-center-libexecdir.patch	\
+  %D%/packages/patches/gnome-dictionary-meson-i18n.patch	\
   %D%/packages/patches/gnome-online-miners-tracker-3.patch	\
   %D%/packages/patches/gnome-settings-daemon-gc.patch		\
   %D%/packages/patches/gnome-session-support-elogind.patch	\
@@ -1365,10 +1375,8 @@ dist_patch_DATA =						\
   %D%/packages/patches/gtksourceview-2-add-default-directory.patch \
   %D%/packages/patches/gzdoom-search-in-installed-share.patch	\
   %D%/packages/patches/gzdoom-find-system-libgme.patch	\
-  %D%/packages/patches/hdf4-architectures.patch 		\
   %D%/packages/patches/hdf4-reproducibility.patch 		\
   %D%/packages/patches/hdf4-shared-fortran.patch 		\
-  %D%/packages/patches/hdf4-tirpc.patch 			\
   %D%/packages/patches/hdf5-config-date.patch			\
   %D%/packages/patches/hdf-eos2-build-shared.patch 		\
   %D%/packages/patches/hdf-eos2-remove-gctp.patch		\
@@ -1410,7 +1418,6 @@ dist_patch_DATA =						\
   %D%/packages/patches/inkscape-poppler-compat.patch		\
   %D%/packages/patches/instead-use-games-path.patch		\
   %D%/packages/patches/intltool-perl-compatibility.patch	\
-  %D%/packages/patches/iputils-libcap-compat.patch		\
   %D%/packages/patches/irrlicht-use-system-libs.patch		\
   %D%/packages/patches/irrlicht-link-against-needed-libs.patch	\
   %D%/packages/patches/isl-0.11.1-aarch64-support.patch	\
@@ -1445,6 +1452,7 @@ dist_patch_DATA =						\
   %D%/packages/patches/json-c-0.12-CVE-2020-12762.patch		\
   %D%/packages/patches/julia-SOURCE_DATE_EPOCH-mtime.patch	\
   %D%/packages/patches/julia-Use-MPFR-4.2.patch	                \
+  %D%/packages/patches/libftdi-fix-paths-when-FTDIPP-set.patch	\
   %D%/packages/patches/libgeotiff-fix-tests-with-proj-9.1.1.patch	\
   %D%/packages/patches/libobjc2-unbundle-robin-map.patch	\
   %D%/packages/patches/librime-fix-build-with-gcc10.patch	\
@@ -1475,6 +1483,7 @@ dist_patch_DATA =						\
   %D%/packages/patches/kobodeluxe-midicon-segmentation-fault.patch	\
   %D%/packages/patches/kobodeluxe-graphics-window-signed-char.patch	\
   %D%/packages/patches/kodi-set-libcurl-ssl-parameters.patch		\
+  %D%/packages/patches/kwin-unwrap-executable-name-for-dot-desktop-search.patch\
   %D%/packages/patches/kodi-mesa-eglchromium.patch		\
   %D%/packages/patches/laby-make-install.patch			\
   %D%/packages/patches/laby-use-tmpdir-from-runtime.patch	\
@@ -1632,6 +1641,7 @@ dist_patch_DATA =						\
   %D%/packages/patches/mutter-fix-inverted-test.patch		\
   %D%/packages/patches/mutt-store-references.patch		\
   %D%/packages/patches/m17n-lib-1.8.0-use-pkg-config-for-freetype.patch	\
+  %D%/packages/patches/nanosvg-prusa-slicer.patch		\
   %D%/packages/patches/nautilus-extension-search-path.patch	\
   %D%/packages/patches/ncompress-fix-softlinks.patch		\
   %D%/packages/patches/ncftp-reproducible.patch			\
@@ -1835,7 +1845,6 @@ dist_patch_DATA =						\
   %D%/packages/patches/python-piexif-fix-tests-with-pillow-7.2.patch	\
   %D%/packages/patches/python-pillow-CVE-2022-45199.patch	\
   %D%/packages/patches/python-pyfakefs-remove-bad-test.patch	\
-  %D%/packages/patches/python-pyflakes-test-location.patch	\
   %D%/packages/patches/python-flint-includes.patch		\
   %D%/packages/patches/python-libxml2-utf8.patch		\
   %D%/packages/patches/python-memcached-syntax-warnings.patch	\
@@ -1897,7 +1906,7 @@ dist_patch_DATA =						\
   %D%/packages/patches/rpcbind-CVE-2017-8779.patch		\
   %D%/packages/patches/rtags-separate-rct.patch			\
   %D%/packages/patches/racket-chez-scheme-bin-sh.patch		\
-  %D%/packages/patches/racket-rktboot-riscv64-support.patch	\
+  %D%/packages/patches/racket-backport-8.10-rktboot.patch	\
   %D%/packages/patches/racket-rktio-bin-sh.patch		\
   %D%/packages/patches/racket-zuo-bin-sh.patch			\
   %D%/packages/patches/remake-impure-dirs.patch			\
@@ -1995,6 +2004,7 @@ dist_patch_DATA =						\
   %D%/packages/patches/tcsh-fix-autotest.patch			\
   %D%/packages/patches/teensy-loader-cli-help.patch		\
   %D%/packages/patches/tensorflow-c-api-fix.patch		\
+  %D%/packages/patches/tensorflow-lite-unbundle.patch 		\
   %D%/packages/patches/texinfo-headings-single.patch		\
   %D%/packages/patches/texinfo-5-perl-compat.patch		\
   %D%/packages/patches/telegram-desktop-allow-disable-libtgvoip.patch   \

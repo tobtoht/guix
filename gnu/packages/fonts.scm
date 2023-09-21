@@ -933,7 +933,7 @@ for use at smaller text sizes")))
 (define-public font-gnu-unifont
   (package
     (name "font-gnu-unifont")
-    (version "15.0.01")
+    (version "15.1.01")
     (source
      (origin
        (method url-fetch)
@@ -943,12 +943,11 @@ for use at smaller text sizes")))
              (string-append "mirror://gnu/unifont/unifont-"
                             version "/unifont-" version ".tar.gz")))
        (sha256
-        (base32 "1m9lfss6sbmcr0b6h7pxxmdl71j9dmnvk8idvxzylqrwpwjaj4bx"))
+        (base32 "1dydcqa2nvmnij5jzj10carrzssd3ar24i8zd18pk4zpl84l4pz1"))
        (snippet
         '(begin
            (use-modules (guix build utils))
-           (delete-file-recursively "font/precompiled")
-           (delete-file-recursively "hangul/precompiled")))))
+           (delete-file-recursively "font/precompiled")))))
     (build-system gnu-build-system)
     (outputs '("out"   ; TrueType/OpenType version
                "pcf"   ; PCF (bitmap) version
@@ -956,6 +955,7 @@ for use at smaller text sizes")))
                "bin")) ; Utilities to manipulate '.hex' format
     (arguments
      `(#:tests? #f          ; no check target
+       #:parallel-build? #f ; Race condition in the font Makefile
        #:make-flags
        (list (string-append "CC=" ,(cc-for-target))
              "BUILDFONT=TRUE")
@@ -977,20 +977,13 @@ for use at smaller text sizes")))
                    (psf (string-append (assoc-ref outputs "psf")
                                        "/share/consolefonts"))
                    (bin (assoc-ref outputs "bin")))
-              ;; This directory isn't created in fonts/Makefile.
-              (mkdir-p otf)
               (apply invoke "make" "install"
                      (string-append "PREFIX=" bin)
                      (string-append "TTFDEST=" ttf)
                      (string-append "OTFDEST=" otf)
                      (string-append "PCFDEST=" pcf)
                      (string-append "CONSOLEDEST=" psf)
-                     make-flags)
-              ;; Move Texinfo file to the right place.
-              (mkdir (string-append bin "/share/info"))
-              (invoke "gzip" "-9n" "doc/unifont.info")
-              (install-file "doc/unifont.info.gz"
-                            (string-append bin "/share/info"))))))))
+                     make-flags)))))))
     (native-inputs
      (list bdftopcf console-setup fontforge))
     (inputs
@@ -3192,7 +3185,7 @@ dialects in Hong Kong and Taiwan.")))
 (define-public font-chiron-sung-hk
   (package
     (name "font-chiron-sung-hk")
-    (version "1.008")
+    (version "1.010")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -3201,7 +3194,7 @@ dialects in Hong Kong and Taiwan.")))
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "19rabzmy4ywam4r5kgnqbgbmqzvhsagzddbyis5iicc6y8jrmd1j"))))
+                "065p1gc5xjwc4kfw8bqpsbhaf1p4w0k4l0j04vjsjhcl4k9vyvfz"))))
     (build-system font-build-system)
     (home-page "https://chiron-fonts.github.io/")
     (synopsis "Traditional Chinese Song typeface")

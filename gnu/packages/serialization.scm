@@ -52,8 +52,6 @@
   #:use-module (gnu packages boost)
   #:use-module (gnu packages check)
   #:use-module (gnu packages compression)
-  #:use-module (gnu packages cmake)
-  #:use-module (gnu packages cpp)
   #:use-module (gnu packages databases)
   #:use-module (gnu packages documentation)
   #:use-module (gnu packages gcc)
@@ -64,8 +62,7 @@
   #:use-module (gnu packages python-build)
   #:use-module (gnu packages python-check)
   #:use-module (gnu packages python-science)
-  #:use-module (gnu packages python-xyz)
-  #:use-module (gnu packages perl))
+  #:use-module (gnu packages python-xyz))
 
 (define-public avro-cpp-1.9
   (package
@@ -810,6 +807,17 @@ game development and other performance-critical applications.")
               (sha256
                (base32
                 "1z3a6l8g2y53i5xzraswfs2i0i3kk52zv7nzc2q3fgisbyiri3pz"))))))
+
+(define-public flatbuffers-next-shared
+  (package
+    (inherit flatbuffers-next)
+    (name "flatbuffers-shared")
+    (version "23.1.21")
+    (arguments
+     (substitute-keyword-arguments (package-arguments flatbuffers-next)
+       ((#:configure-flags  flags)
+        ;; Compile with -fPIC, needed for shared lib.
+        #~(cons "-DFLATBUFFERS_CXX_FLAGS=-fPIC" #$flags))))))
 
 (define-public python-feather-format
   (package

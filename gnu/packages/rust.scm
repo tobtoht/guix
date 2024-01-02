@@ -824,6 +824,16 @@ safety and thread safety guarantees.")
                (("features = \\[\"fs\"" all)
                 (string-append all ", \"use-libc\""))))))))))
 
+(define rust-1.75
+  (let ((base-rust (rust-bootstrapped-package rust-1.74 "1.75.0"
+                    "1260mf3066ki6y55pvr35lnf54am6z96a3ap3hniwd4xpi2rywsv")))
+    (package
+      (inherit base-rust)
+      (source
+       (origin
+         (inherit (package-source base-rust))
+         (patches '()))))))
+
 (define (make-ignore-test-list strs)
   "Function to make creating a list to ignore tests a bit easier."
   (map (lambda (str)
@@ -838,7 +848,7 @@ safety and thread safety guarantees.")
 ;;; Here we take the latest included Rust, make it public, and re-enable tests
 ;;; and extra components such as rustfmt.
 (define-public rust
-  (let ((base-rust rust-1.74))
+  (let ((base-rust rust-1.75))
     (package
       (inherit base-rust)
       (outputs (cons* "rust-src" "tools" (package-outputs base-rust)))
@@ -977,7 +987,7 @@ safety and thread safety guarantees.")
                ;; different outputs while reusing the shared libraries.
                (lambda* (#:key outputs #:allow-other-keys)
                  (let ((out (assoc-ref outputs "out")))
-                   (substitute* "src/bootstrap/builder.rs"
+                   (substitute* "src/bootstrap/src/core/builder.rs"
                       ((" = rpath.*" all)
                        (string-append all
                                       "                "
@@ -1111,7 +1121,7 @@ exec -a \"$0\" \"~a\" \"$@\""
                          (("\\.ceil\\(\\)") ""))
                        ;; gcc doesn't recognize this flag.
                        (substitute*
-                         "compiler/rustc_target/src/spec/windows_gnullvm_base.rs"
+                         "compiler/rustc_target/src/spec/base/windows_gnullvm.rs"
                          ((", \"--unwindlib=none\"") "")))))
                  `())
              (replace 'set-env

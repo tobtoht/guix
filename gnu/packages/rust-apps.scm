@@ -2248,9 +2248,6 @@ consecutive lines and since program start.")
     (description "This package provides a fuzzy finder in Rust.")
     (license license:expat)))
 
-(define-public skim-0.7
-  (deprecated-package "skim-0.7" rust-skim-0.7))
-
 (define-public spotifyd
   (package
     (name "spotifyd")
